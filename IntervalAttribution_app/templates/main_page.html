@@ -66,7 +66,7 @@
                     <div class="composer-actions">
                         <a href="{% url 'composer_detail' composer.ID %}" class="details-link">Подробнее</a>
                 
-                       <form method="POST" action="{% url 'add_to_cart' %}">
+                       <form method="POST" action="">
                             {% csrf_token %}
                             <input type="hidden" name="composer_id" value="{{ composer.ID }}">
                             <input type="hidden" name="redirect_url" value="/main">
