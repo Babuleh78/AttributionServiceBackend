@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALLMUSIC</title>
+     {% load static %}
+    <link rel="stylesheet" href="{% static 'styles/main_page_style.css' %}">
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="header-content">
+            <h1 class="logo">
+                <a href="{% url 'composers' %}">ALLMUSIC</a>
+            </h1>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="search-container-main">
+            <form action="{% url 'composers' %}" method="GET" class="search-form">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        name="query" 
+                        placeholder="Найти композитора..." 
+                        value="{{ query }}"
+                        class="search-input"
+                    >
+                    <button type="submit" class="search-button">
+                        <img src="static/images/search-icon.png" alt="Search" width="20" height="20">
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="composers-grid">
+            {% for composer in composerProfiles %}
+            <div class="composer-card">
+                <div class="composer-image">
+                    <img 
+                            src="{{ composer.PortraitURL }}" 
+                            alt="{{ composer.Name }}" 
+                        >
+                </div>
+
+                <div class="composer-content">
+                    <div class="composer-header">
+                        <h3 class="composer-name">{{ composer.Name }}</h3>
+                    </div>
+                    
+                    <div class="composer-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Проанализировано произведений:</span>
+                            <span class="stat-value">{{ composer.AnalyzedWorks }}</span>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <span class="stat-label">Цена анализа:</span>
+                            <span class="stat-value">{{ composer.AnalysisCost }}р</span>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="composer-actions">
+                        <a href="{% url 'composer_detail' composer.ID %}" class="details-link">Подробнее</a>
+                
+                       <form method="POST" action="{% url 'add_to_cart' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="composer_id" value="{{ composer.ID }}">
+                            <input type="hidden" name="redirect_url" value="/main">
+                            <button type="submit" class="order-link">Добавить в заявку</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+            {% empty %}
+            <p>Композиторы не найдены.</p>
+            {% endfor %}
+        </div>
+    </main>
+
+    <div class="cart-icon-container">
+       <a href="{% url 'attribution_results' %}" class="cart-icon">
+            <img src="static/images/note-icon.png" alt="Корзина" class="cart-image">
+            <span class="cart-badge">{{ candidateCount }}</span>
+        </a>
+    </div>
+
+</body>
+</html>
