@@ -36,39 +36,39 @@
         </div>
 
         <div class="composers-grid">
-            {% for composer in composerProfiles %}
+           {% for composer in composers %}
             <div class="composer-card">
                 <div class="composer-image">
                     <img 
-                            src="{{ composer.PortraitURL }}" 
-                            alt="{{ composer.Name }}" 
+                            src="{{ composer.image }}" 
+                            alt="{{ composer.name }}" 
                         >
                 </div>
 
                 <div class="composer-content">
                     <div class="composer-header">
-                        <h3 class="composer-name">{{ composer.Name }}</h3>
+                        <h3 class="composer-name">{{ composer.name }}</h3>
                     </div>
                     
                     <div class="composer-stats">
                         <div class="stat-item">
                             <span class="stat-label">Проанализировано произведений:</span>
-                            <span class="stat-value">{{ composer.AnalyzedWorks }}</span>
+                            <span class="stat-value">{{ composer.analyzed_works }}</span>
                         </div>
                         
                         <div class="stat-item">
                             <span class="stat-label">Цена анализа:</span>
-                            <span class="stat-value">{{ composer.AnalysisCost }}р</span>
+                            <span class="stat-value">{{ composer.price }}р</span>
                         </div>
                         
                     </div>
                     
                     <div class="composer-actions">
-                        <a href="{% url 'composer_detail' composer.ID %}" class="details-link">Подробнее</a>
+                        <a href="/composers/{{ composer.id }}" class="details-link">Подробнее</a>
                 
-                       <form method="POST" action="{% url 'add_to_cart' %}">
+                    <form method="POST" action="{% url 'add_composer_to_draft_analysis' composer.id %}">
                             {% csrf_token %}
-                            <input type="hidden" name="composer_id" value="{{ composer.ID }}">
+                            <input type="hidden" name="composer_id" value="{{ composer.id }}">
                             <input type="hidden" name="redirect_url" value="/main">
                             <button type="submit" class="order-link">Добавить в заявку</button>
                         </form>
@@ -82,12 +82,27 @@
         </div>
     </main>
 
-    <div class="cart-icon-container">
-       <a href="{% url 'attribution_results' %}" class="cart-icon">
-            <img src="static/images/note-icon.png" alt="Корзина" class="cart-image">
-            <span class="cart-badge">{{ candidateCount }}</span>
-        </a>
-    </div>
+   {% load static %}
+
+        {% if draft_analysis %}
+            <div class="cart-icon-container">
+                <a href="/analysiss/{{ draft_analysis.id }}/" class="cart-icon">
+                
+                        <img src="{% static 'images/note-icon.png' %}" alt="Корзина" class="cart-image">
+                         {% if composers_count > 0 %}
+                            <span class="cart-badge">{{ composers_count }}</span>
+                         {% endif %}
+                </a>
+            </div>
+        {% else %}
+            <div class="cart-icon-container">
+                
+                <a class="cart-icon">
+                    <img src="{% static 'images/note-icon.png' %}" alt="Корзина" class="cart-image">
+                    
+                </a>
+            </div>
+        {% endif %}
 
 </body>
 </html>

@@ -221,29 +221,59 @@ img {
 }
 
 .final-total-section {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
 }
 
-.final-total-section .total-final {
-  display: inline-flex;
-  align-items: center;
-  gap: 1rem;
-  background: #e84118;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  font-weight: bold;
-  font-size: 1.3rem;
-  box-shadow: 0 4px 12px rgba(232, 65, 24, 0.3);
-  margin-top: 1rem;
+.actions-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap; 
+}
+.styled-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: #e84118;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 12px rgba(232, 65, 24, 0.3);
+    text-decoration: none;
+    border: none; /* Убираем рамку */
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.final-total-section .total-sum {
-  color: white;
-  font-size: 1.3rem;
-  
+.styled-button button {
+    background: none;
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    width: 100%; 
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn {
+    margin: 0;
+    padding: 0;
+}
+
+.total-sum {
+    color: white;
+    font-size: 1.3rem;
 }
 
 

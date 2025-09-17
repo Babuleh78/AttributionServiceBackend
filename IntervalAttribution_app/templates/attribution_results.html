@@ -40,24 +40,24 @@
             </div>
 
             <div class="composer-list">
-                {% for candidate in attributionCandidates %}
+                 {% for composer in analysis.get_composers %}
                 <div class="composer-item">
-                    <img src="{{ candidate.PortraitURL }}" alt="{{ candidate.Name }}" class="composer-img">
+                    <img src="{{ composer.image }}" alt="{{ composer.name }}" class="composer-img">
                     <div class="composer-info">
-                        <div class="composer-name">{{ candidate.Name }}</div>
+                        <div class="composer-name">{{ composer.name }}</div>
                         <div class="label">Композитор</div>
                     </div>
                     <div class="composer-details">
                         <div class="value-box">
-                            <div class="value">{{ candidate.AnalysisCost }}р/мин</div>
+                            <div class="value">{{ composer.price  }}р/мин</div>
                             <div class="label">Тариф анализа</div>
                         </div>
                         <div class="value-box">
-                            <div class="value">300 сек</div>
+                            <div class="value"> {{ composer.length }}</div>
                             <div class="label">Длительность композиции</div>
                         </div>
                         <div class="value-box">
-                            <div class="value composer-price">{{ candidate.CalculatedPrice }} руб</div>
+                            <div class="value composer-price">{{ composer.value }} руб</div>
                             <div class="label">Стоимость анализа</div>
                         </div>
                     </div>
@@ -70,21 +70,33 @@
 
         <div class="order-right">
             <div class="total-title">Детализация стоимости</div>
-            {% for candidate in attributionCandidates %}
+            {%  for composer in analysis.get_composers %}
             <div class="total-item">
-                <span>{{ candidate.Name }}:</span>
-                <span class="total-price">{{ candidate.CalculatedPrice }} руб</span>
+                <span>{{ composer.name }}:</span>
+                <span class="total-price">{{ composer.value}} руб</span>
             </div>
             {% endfor %}
         </div>
     </div>
 
-    <div class="final-total-section">
-        <div class="total-item total-final">
+   <div class="final-total-section">
+    <div class="actions-row">
+        <div class="total-item total-final styled-button">
             <span><strong>Итого</strong></span>
             <span class="total-sum">{{ totalSum }} руб</span>
         </div>
+
+        <div class="total-item total-final styled-button delete-link">
+            <form method="post" action="{% url 'delete_analysis' analysis.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="delete-btn" style="border: none; background: none; color: white; font-weight: bold; cursor: pointer; padding: 0; margin: 0;">
+                    Удалить
+                </button>
+            </form>
+        </div>
     </div>
+</div>
+</div>
   
 </body>
 </html>

@@ -1,194 +1,104 @@
+from django.contrib.auth.models import User
+from django.db import connection
+from django.shortcuts import render, redirect
+from django.utils import timezone
 
-from django.shortcuts import render, get_object_or_404, redirect
-
-
-composerProfiles = [
-    {
-        "ID": 1,
-        "Name": "Макс Рихтер",
-        "AnalyzedWorks": 18,
-        "AnalysisCost": 660,
-        "TotalIntervals": 188190,
-        "PortraitURL": "http://localhost:9000/laboratory1/richter-6x9.jpg",
-        "Period": "2002 - настоящее время",
-        "PolyphonyType": "Минималистичный контрапункт",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 32.7, "StdDev": 2.4},
-            {"IntervalGroup": "Терции", "Frequency": 24.1, "StdDev": 1.9},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 18.3, "StdDev": 2.1},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 12.8, "StdDev": 1.7},
-            {"IntervalGroup": "Октавы", "Frequency": 11.1, "StdDev": 1.5},
-        ],
-        "Biography": "Макс Рихтер — британский композитор-постминималист немецкого происхождения (род. 1966). Классически образованный выпускник Королевской академии музыки, он стал одним из самых влиятельных современных авторов, работая на стыке академической традиции и электронной музыки.",
-    },
-    {
-        "ID": 2,
-        "Name": "Людвиг Ван Бетховен",
-        "AnalyzedWorks": 32,
-        "AnalysisCost": 890,
-        "TotalIntervals": 285430,
-        "PortraitURL": "http://localhost:9000/laboratory1/bethoven.jpg",
-        "Period": "1770-1827",
-        "PolyphonyType": "Классика + контрапункт",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 28.4, "StdDev": 3.2},
-            {"IntervalGroup": "Терции", "Frequency": 26.8, "StdDev": 2.8},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 22.1, "StdDev": 2.5},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 15.3, "StdDev": 2.1},
-            {"IntervalGroup": "Октавы", "Frequency": 7.4, "StdDev": 1.8},
-        ],
-        "Biography": "Великий немецкий композитор, пианист и дирижёр. Последний представитель венской классической школы. ключевая фигура западной классической музыки в период между классицизмом и романтизмом.",
-    },
-    {
-        "ID": 3,
-        "Name": "Дзё Хисаиси",
-        "AnalyzedWorks": 24,
-        "AnalysisCost": 720,
-        "TotalIntervals": 215670,
-        "PortraitURL": "http://localhost:9000/laboratory1/dze.jpg",
-        "Period": "1981 - настоящее время",
-        "PolyphonyType": "Остинато",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 30.2, "StdDev": 2.1},
-            {"IntervalGroup": "Терции", "Frequency": 25.6, "StdDev": 1.9},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 20.8, "StdDev": 2.0},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 14.7, "StdDev": 1.6},
-            {"IntervalGroup": "Октавы", "Frequency": 8.7, "StdDev": 1.4},
-        ],
-        "Biography": "Японский композитор и музыкальный директор. Известен своими саундтреками к аниме-фильмам Хаяо Миядзаки. Сочетает элементы западной классической музыки с японскими традиционными мотивами.",
-    },
-    {
-        "ID": 4,
-        "Name": "Пьер Булез",
-        "AnalyzedWorks": 16,
-        "AnalysisCost": 580,
-        "TotalIntervals": 172890,
-        "PortraitURL": "http://localhost:9000/laboratory1/PierB.jpg",
-        "Period": "1925-2016",
-        "PolyphonyType": "Серийный контрапункт",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 35.8, "StdDev": 4.2},
-            {"IntervalGroup": "Терции", "Frequency": 18.9, "StdDev": 3.1},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 16.4, "StdDev": 2.8},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 19.2, "StdDev": 3.0},
-            {"IntervalGroup": "Октавы", "Frequency": 9.7, "StdDev": 2.1},
-        ],
-        "Biography": "Французский композитор, дирижёр и музыкальный теоретик. Один из лидеров послевоенного авангарда. Разработал технику сериализма и был пионером электронной музыки.",
-    },
-    {
-        "ID": 5,
-        "Name": "Дюк Эллингтон",
-        "AnalyzedWorks": 28,
-        "AnalysisCost": 820,
-        "TotalIntervals": 245320,
-        "PortraitURL": "http://localhost:9000/laboratory1/DuckE.jpg",
-        "Period": "1899-1974",
-        "PolyphonyType": "Джазовая гетерофония",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 27.6, "StdDev": 2.3},
-            {"IntervalGroup": "Терции", "Frequency": 29.4, "StdDev": 2.1},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 19.8, "StdDev": 1.9},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 16.2, "StdDev": 1.7},
-            {"IntervalGroup": "Октавы", "Frequency": 7.0, "StdDev": 1.2},
-        ],
-        "Biography": "Американский джазовый композитор, пианист и руководитель оркестра. Один из наиболее влиятельных фигур в истории джаза. Создал уникальный оркестровый звук и написал более 1000 произведений.",
-    },
-    {
-        "ID": 6,
-        "Name": "Филип Гласс",
-        "AnalyzedWorks": 22,
-        "AnalysisCost": 750,
-        "TotalIntervals": 198560,
-        "PortraitURL": "http://localhost:9000/laboratory1/PhilG.jpg",
-        "Period": "1937 - настоящее время",
-        "PolyphonyType": "Минималистичная гетерофония",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 33.5, "StdDev": 1.8},
-            {"IntervalGroup": "Терции", "Frequency": 22.3, "StdDev": 1.6},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 21.7, "StdDev": 1.7},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 13.9, "StdDev": 1.4},
-            {"IntervalGroup": "Октавы", "Frequency": 8.6, "StdDev": 1.2},
-        ],
-        "Biography": "Американский композитор-минималист. Один из наиболее влиятельных композиторов конца XX - начала XXI века. Известен своими повторяющимися структурами и гипнотическими музыкальными паттернами.",
-    },
-]
+from IntervalAttribution_app.models import Composer, Analysis, ComposerAnalysis
 
 
-def getComposerById(composer_id):
-    for composer in composerProfiles:
-        if composer["ID"] == composer_id:
-            return composer
-    return None
+def index(request):
+    composer_name = request.GET.get("composer_name", "")
+    composers = Composer.objects.filter(status=1)
+
+    if composer_name:
+        composers = composers.filter(name__icontains=composer_name)
+
+    context = {
+        "composer_name": composer_name,
+        "composers": composers
+    }
+
+    draft_analysis = get_draft_analysis()
+    if draft_analysis:
+        context["composers_count"] = len(draft_analysis.get_composers())
+        context["draft_analysis"] = draft_analysis
+
+    return render(request, "main_page.html", context)
 
 
-def getComposers():
-    return composerProfiles
+def composer_page(request, composer_id):
+    composer = Composer.objects.get(id=composer_id)
 
-
-def searchComposers(pattern):
-    if not pattern:
-        return composerProfiles
-    pattern = pattern.lower()
-    return [c for c in composerProfiles if pattern in c["Name"].lower()]
-
-
-def getAttributionCandidates():
-    return composerProfiles[:3]
-
-
-def get_composers_with_stats(request):
-    search_pattern = request.GET.get('query', '')
+    print(composer)
+    if composer.status == 2:
+         return render(request, "404.html")
     
-    if search_pattern:
-        composers = searchComposers(search_pattern)
-    else:
-        composers = getComposers()
-
-    attribution_candidates = getAttributionCandidates()
-    candidate_count = len(attribution_candidates)
-
-    return render(request, 'main_page.html', {
-        'composerProfiles': composers,
-        'searchPattern': search_pattern,
-        'candidateCount': candidate_count,
-    })
+    context = {
+        "composer": Composer.objects.get(id=composer_id)
+    }
 
 
-def get_composer_interval_profile(request, id):
-    composer = getComposerById(id)
-    if not composer:
-        from django.http import Http404
-        raise Http404("Композитор не найден")
+    return render(request, "composer_profile.html", context)
+
+
+def analysis_page(request, analysis_id):
+    if not Analysis.objects.filter(pk=analysis_id).exists():
+        return render(request, "404.html")
+
+    analysis = Analysis.objects.get(id=analysis_id)
+    if analysis.status == 5:
+        return render(request, "404.html")
+
+    total_sum = 0
+    composers = analysis.get_composers() 
+    for composer in composers:
+        total_sum += composer['value']
     
-    return render(request, 'composer_profile.html', {
-        'composer': composer,
-    })
+    context = {
+        "analysis": analysis,
+        "totalSum": total_sum,  
+    }
+
+    return render(request, "attribution_results.html", context)
 
 
-def view_attribution_results(request):
-    attribution_candidates = getAttributionCandidates()
+def add_composer_to_draft_analysis(request, composer_id):
+    composer_name = request.POST.get("composer_name")
+    redirect_url = f"/?composer_name={composer_name}" if composer_name else "/composers"
 
-    candidates_with_prices = []
-    total_sum = 0.0
+    draft_analysis = get_draft_analysis()
+    if draft_analysis is None:
+        draft_analysis = Analysis.objects.create()
+        draft_analysis.owner = get_current_user()
+        draft_analysis.date_created = timezone.now()
+        draft_analysis.save()
 
-    for candidate in attribution_candidates:
-        calculated_price = float(candidate["AnalysisCost"]) * 300 / 60
-        total_sum += calculated_price
-        candidate_with_price = {**candidate, "CalculatedPrice": calculated_price}
-        candidates_with_prices.append(candidate_with_price)
+    composer = Composer.objects.get(pk=composer_id)
+    if ComposerAnalysis.objects.filter(analysis=draft_analysis, composer=composer).exists():
+        return redirect(redirect_url)
 
-    return render(request, 'attribution_candidates.html', {
-        'attributionCandidates': candidates_with_prices,
-        'totalSum': total_sum,
-    })
+    item = ComposerAnalysis(
+        analysis=draft_analysis,
+        composer=composer
+    )
+    item.save()
+
+    return redirect(redirect_url)
 
 
-def add_to_cart(request):
-    if request.method == "POST":
-        composer_id = request.POST.get("composer_id")
-        if "cart" not in request.session:
-            request.session["cart"] = []
-        request.session["cart"].append(composer_id)
-        request.session.modified = True
+def delete_analysis(request, analysis_id):
+    if not Analysis.objects.filter(pk=analysis_id).exists():
+        return redirect("/composers")
 
-    return redirect("main_page")
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE analysiss SET status=5 WHERE id = %s", [analysis_id])
+
+    return redirect("/composers")
+
+
+def get_draft_analysis():
+    return Analysis.objects.filter(status=1).first()
+
+
+def get_current_user():
+    return User.objects.filter(is_superuser=False).first()

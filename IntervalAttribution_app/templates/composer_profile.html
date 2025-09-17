@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALLMUSIC - {{ composer.Name }}</title>
+    <title>ALLMUSIC - {{ composer.name }}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'styles/composer_style.css' %}">
 </head>
@@ -19,10 +19,10 @@
 
     <main class="composer-content">
         <div class="composer-container">
-            <h1 class="composer-title">{{ composer.Name }}</h1>
+            <h1 class="composer-title">{{ composer.name }}</h1>
             
             <div class="composer-image">
-                <img src="{{ composer.PortraitURL }}" alt="{{ composer.Name }}">
+                <img src="{{ composer.image }}" alt="{{ composer.name }}">
             </div>
 
             <div class="interval-stats">
@@ -36,7 +36,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for stat in composer.IntervalStats %}
+                        {% for stat in composer.interval_stats %}
                         <tr>
                             <td>{{ stat.IntervalGroup }}</td>
                             <td>{{ stat.Frequency|floatformat:1 }}</td>
@@ -56,30 +56,30 @@
                     <h3>Основная информация</h3>
                     <div class="info-item">
                         <span class="info-label">Период творчества:</span>
-                        <span class="info-value">{{ composer.Period }}</span>
+                        <span class="info-value">{{ composer.period }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Проанализировано произведений:</span>
-                        <span class="info-value">{{ composer.AnalyzedWorks }}</span>
+                        <span class="info-value">{{ composer.analyzed_works }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Цена анализа:</span>
-                        <span class="info-value">{{ composer.AnalysisCost }}р</span>
+                        <span class="info-value">{{ composer.price }}р</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Общее количество интервалов:</span>
-                        <span class="info-value">{{ composer.TotalIntervals }}</span>
+                        <span class="info-value">{{ composer.total_intervals }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Тип полифонии:</span>
-                        <span class="info-value">{{ composer.PolyphonyType }}</span>
+                        <span class="info-value">{{ composer.polyphony_type }}</span>
                     </div>
                 </div>
 
                 <div class="info-section">
                     <h3>Биография</h3>
                     <div class="info-item">
-                        <span class="bio-label">{{ composer.Biography }}</span>
+                        <span class="bio-label">{{ composer.description }}</span>
                     </div>
                 </div>
             </div>
