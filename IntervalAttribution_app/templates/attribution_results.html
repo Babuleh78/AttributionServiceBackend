@@ -31,16 +31,16 @@
     <div class="order-form">
         <div class="order-left">
             <div class="speed-section">
-                <label class="speed-label">Скорость анализа</label>
+                <label class="speed-label">Тип анализа</label>
                 <select class="speed-select">
-                    <option>Кратчайший (до 24 часов)</option>
-                    <option>Быстрый (1-2 дня)</option>
-                    <option selected>Стандарт(2-4 дня)</option>
+                    <option> Экспресс </option>
+                    <option> Стандартный </option>
+                    <option selected> Полный </option>
                 </select>
             </div>
 
             <div class="composer-list">
-                 {% for composer in analysis.get_composers %}
+                 {% for composer in composers %}
                 <div class="composer-item">
                     <img src="{{ composer.image }}" alt="{{ composer.name }}" class="composer-img">
                     <div class="composer-info">
@@ -57,7 +57,7 @@
                             <div class="label">Длительность композиции</div>
                         </div>
                         <div class="value-box">
-                            <div class="value composer-price">{{ composer.value }} руб</div>
+                            <div class="value composer-price">{{ composer.calculated_cost }} руб</div>
                             <div class="label">Стоимость анализа</div>
                         </div>
                     </div>
@@ -70,10 +70,10 @@
 
         <div class="order-right">
             <div class="total-title">Детализация стоимости</div>
-            {%  for composer in analysis.get_composers %}
+             {% for composer in composers %}
             <div class="total-item">
                 <span>{{ composer.name }}:</span>
-                <span class="total-price">{{ composer.value}} руб</span>
+                <span class="total-price">{{composer.calculated_cost }} руб</span>
             </div>
             {% endfor %}
         </div>

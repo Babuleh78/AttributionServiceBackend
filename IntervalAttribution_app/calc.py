@@ -12,11 +12,13 @@ def calc(item):
     octaves = stats.get("Октавы", {"Frequency": 0, "StdDev": 0})
 
     return (
-        item["length"]
+        item["price"] *
+        item["length"] 
+        // 60 
         * 0.8
-        * (
+        + 10*(
             thirds["Frequency"] * thirds["StdDev"] * 0.3
             + seconds["Frequency"] * seconds["StdDev"] * 0.4
             + octaves["Frequency"] * octaves["StdDev"] * 0.6
-        )
+        ) 
     )

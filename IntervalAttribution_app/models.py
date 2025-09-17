@@ -3,6 +3,7 @@ from django.forms import model_to_dict
 from django.utils import timezone
 from django.contrib.auth.models import User
 
+from IntervalAttribution_app.calc import calc
 
 class Composer(models.Model):
     STATUS_CHOICES = (
@@ -56,18 +57,18 @@ class Analysis(models.Model):
     owner = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="Пользователь", null=True, related_name='owner')
     moderator = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="Модератор", null=True, related_name='moderator')
 
-    def __str__(self):
-        return "Анализ №" + str(self.pk)
 
     def get_composers(self):
-        return [
-            {
+        composers = []
+        for item in ComposerAnalysis.objects.filter(analysis=self):
+           
+            composer_data = {
                 **model_to_dict(item.composer),
                 'length': item.length,
-                'value': item.value
+                'value':  -1
             }
-            for item in ComposerAnalysis.objects.filter(analysis=self)
-        ]
+            composers.append(composer_data)
+        return composers
 
     class Meta:
         verbose_name = "Анализ"

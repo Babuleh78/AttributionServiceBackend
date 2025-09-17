@@ -4,10 +4,11 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 
 from IntervalAttribution_app.models import Composer, Analysis, ComposerAnalysis
+from IntervalAttribution_app.calc import calc
 
 
 def index(request):
-    composer_name = request.GET.get("composer_name", "")
+    composer_name = request.GET.get("query", "")
     composers = Composer.objects.filter(status=1)
 
     if composer_name:
@@ -29,7 +30,6 @@ def index(request):
 def composer_page(request, composer_id):
     composer = Composer.objects.get(id=composer_id)
 
-    print(composer)
     if composer.status == 2:
          return render(request, "404.html")
     
@@ -46,17 +46,24 @@ def analysis_page(request, analysis_id):
         return render(request, "404.html")
 
     analysis = Analysis.objects.get(id=analysis_id)
+    
     if analysis.status == 5:
         return render(request, "404.html")
 
     total_sum = 0
+    composers_with_cost = []  
     composers = analysis.get_composers() 
+
     for composer in composers:
-        total_sum += composer['value']
-    
+        calculated_cost = int(calc(composer))
+        total_sum += calculated_cost
+        composer_with_cost = {**composer, 'calculated_cost': calculated_cost}
+        composers_with_cost.append(composer_with_cost)
+
     context = {
         "analysis": analysis,
-        "totalSum": total_sum,  
+        "totalSum": total_sum,
+        "composers": composers_with_cost,  
     }
 
     return render(request, "attribution_results.html", context)
