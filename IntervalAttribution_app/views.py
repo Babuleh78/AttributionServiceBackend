@@ -9,7 +9,7 @@ composerProfiles = [
         "AnalyzedWorks": 18,
         "AnalysisCost": 660,
         "TotalIntervals": 188190,
-        "PortraitURL": "http://localhost:9000/laboratory1/richter-6x9.jpg",
+        "PortraitURL": "http://localhost:9000/images/richter-6x9.jpg",
         "Period": "2002 - настоящее время",
         "PolyphonyType": "Минималистичный контрапункт",
         "IntervalStats": [
@@ -27,7 +27,7 @@ composerProfiles = [
         "AnalyzedWorks": 32,
         "AnalysisCost": 890,
         "TotalIntervals": 285430,
-        "PortraitURL": "http://localhost:9000/laboratory1/bethoven.jpg",
+        "PortraitURL": "http://localhost:9000/images/bethoven.jpg",
         "Period": "1770-1827",
         "PolyphonyType": "Классика + контрапункт",
         "IntervalStats": [
@@ -45,7 +45,7 @@ composerProfiles = [
         "AnalyzedWorks": 24,
         "AnalysisCost": 720,
         "TotalIntervals": 215670,
-        "PortraitURL": "http://localhost:9000/laboratory1/dze.jpg",
+        "PortraitURL": "http://localhost:9000/images/dze.jpg",
         "Period": "1981 - настоящее время",
         "PolyphonyType": "Остинато",
         "IntervalStats": [
@@ -63,7 +63,7 @@ composerProfiles = [
         "AnalyzedWorks": 16,
         "AnalysisCost": 580,
         "TotalIntervals": 172890,
-        "PortraitURL": "http://localhost:9000/laboratory1/PierB.jpg",
+        "PortraitURL": "http://localhost:9000/images/PierB.jpg",
         "Period": "1925-2016",
         "PolyphonyType": "Серийный контрапункт",
         "IntervalStats": [
@@ -81,7 +81,7 @@ composerProfiles = [
         "AnalyzedWorks": 28,
         "AnalysisCost": 820,
         "TotalIntervals": 245320,
-        "PortraitURL": "http://localhost:9000/laboratory1/DuckE.jpg",
+        "PortraitURL": "http://localhost:9000/images/DuckE.jpg",
         "Period": "1899-1974",
         "PolyphonyType": "Джазовая гетерофония",
         "IntervalStats": [
@@ -99,7 +99,7 @@ composerProfiles = [
         "AnalyzedWorks": 22,
         "AnalysisCost": 750,
         "TotalIntervals": 198560,
-        "PortraitURL": "http://localhost:9000/laboratory1/PhilG.jpg",
+        "PortraitURL": "http://localhost:9000/images/PhilG.jpg",
         "Period": "1937 - настоящее время",
         "PolyphonyType": "Минималистичная гетерофония",
         "IntervalStats": [

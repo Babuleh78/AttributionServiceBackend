@@ -127,7 +127,7 @@ img {
   display: flex;
   flex-direction: column;
   position: relative;
-  background-image: url('http://127.0.0.1:9000/laboratory1/notes.png');
+  background-image: url('http://127.0.0.1:9000/images/notes.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -145,7 +145,6 @@ img {
 }
 
 .composer-name {
-  font-family: var(--font-family-inter);
   font-size: 20px;
   font-weight: 600; 
   margin: 0;
@@ -181,7 +180,6 @@ img {
 }
 
 .stat-value {
-  font-family: var(--font-family-kelly-slab);
   font-size: 20px;
   font-weight: 600;
   flex: 1;
@@ -206,7 +204,7 @@ img {
     border-radius: 6px;
     font-size: 16px;
     font-weight: 500;
-    background-color: #ea431b;
+    background-color: #ea431b; /* музторг */
     color: white;
     border: none;
     text-transform: none;
@@ -220,8 +218,8 @@ img {
     cursor: pointer;
 }
 
-.details-link:hover, .order-link:hover {
-    background-color: #f5672c;
+.details-link:hover, .order-link:hover { /* музторг */
+    background-color: #f5672c; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     color: white;
     text-decoration: none;
@@ -278,7 +276,7 @@ body {
     justify-content: center;
     width: 60px;
     height: 60px;
-    background-color: #ffffff;
+    background-color: #e4e7ec; /* музторг */
     border-radius: 50%;
     transition: background-color 0.3s;
     position: relative;
