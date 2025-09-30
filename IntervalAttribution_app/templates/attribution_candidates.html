@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALLMUSIC - ЗАЯВКА НА АТРИБУЦИЮ</title>
+    <title>ALLMUSIC - РЕЗУЛЬТАТЫ АТРИБУЦИИ</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'styles/attribution_candidates.css' %}">
 </head>
-
 <body>
     <header class="main-header">
         <div class="header-content">
@@ -17,74 +16,62 @@
         </div>
     </header>
 
-    <h1 class="page-title">Оформление заявки на атрибуцию</h1>
+    <h1 class="page-title">Результаты атрибуции музыкального произведения</h1>
  
-    <div class="client-section">
-        <label class="client-label">Выберите клиента</label>
-        <select class="sclient-select">
-            <option>Клиент 1</option>
-            <option>Клиент 2</option>
-            <option>Клиент 3</option>
-        </select>
-    </div>
-
     <div class="order-form">
         <div class="order-left">
-            <div class="speed-section">
-                <label class="speed-label">Выберите тип анализа</label>
-                 <select class="speed-select">
-                    <option> Экспресс </option>
-                    <option> Стандартный </option>
-                    <option selected> Полный </option>
-        </select>
-            </div>
-
             <div class="composer-list">
                 {% for candidate in attributionCandidates %}
-                <div class="composer-item">
-                    <img src="{{ candidate.PortraitURL }}" alt="{{ candidate.Name }}" class="composer-img">
-                    <div class="composer-info">
-                        <div class="composer-name">{{ candidate.Name }}</div>
-                        <div class="label">Композитор</div>
+                    <div class="composer-item">
+                        <img src="{{ candidate.portrait_url }}" alt="{{ candidate.name }}" class="composer-img">
+                        <div class="composer-info">
+                            <div class="composer-name">{{ candidate.name }}</div>
+                            <div class="label">Композитор</div>
+                            <div class="info-small">
+                                Период: {{ candidate.period }}<br>
+                            </div>
+                        </div>
+                        <div class="composer-details">
+                            <div class="value-box">
+                                <div class="value">{{ candidate.MatchPercent }}%</div>
+                                <div class="label">Вероятное совпадение стиля</div>
+                            </div>
+                            <div class="value-box">
+                                <div class="value">{{ candidate.analyzed_works }}</div>
+                                <div class="label">Проанализировано произведений</div>
+                            </div>
+                            <div class="value-box">
+                                <div class="value">{{ candidate.total_intervals }}</div>
+                                <div class="label">Всего интервалов</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="composer-details">
-                        <div class="value-box">
-                            <div class="value">{{ candidate.AnalysisCost }}р/мин</div>
-                            <div class="label">Тариф анализа</div>
-                        </div>
-                        <div class="value-box">
-                            <div class="value">300 сек</div>
-                            <div class="label">Длительность композиции</div>
-                        </div>
-                        <div class="value-box">
-                            <div class="value composer-price">{{ candidate.CalculatedPrice }} руб</div>
-                            <div class="label">Стоимость анализа</div>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <p>Нет композиторов в заявке.</p>
-                {% endfor %}
+                    {% endfor %}
+             
             </div>
         </div>
 
         <div class="order-right">
-            <div class="total-title">Детализация стоимости</div>
-            {% for candidate in attributionCandidates %}
-            <div class="total-item">
-                <span>{{ candidate.Name }}:</span>
-                <span class="total-price">{{ candidate.CalculatedPrice }} руб</span>
+            <div class="anonymous-work">
+                <h3>Статистика анонимного произведения</h3>
+                <table class="interval-table">
+                    <thead>
+                        <tr>
+                            <th>Интервал</th>
+                            <th>Частотность (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in anonymousStats %}
+                        <tr>
+                            <td>{{ stat.IntervalGroup }}</td>
+                            <td>{{ stat.Frequency|floatformat:1 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
-        </div>
-    </div>
 
-    <div class="final-total-section">
-        <div class="total-item total-final">
-            <span><strong>Итого</strong></span>
-            <span class="total-sum">{{ totalSum }} руб</span>
-        </div>
-    </div>
-  
+
 </body>
 </html>

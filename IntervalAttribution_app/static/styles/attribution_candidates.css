@@ -295,3 +295,91 @@ img {
   outline: none;
   transition: all 0.2s ease;
 }
+
+
+
+.anonymous-work {
+  background: #fff;
+  padding: 1.2rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.anonymous-work h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+  color: #2c3e50;
+  font-weight: 600;
+  text-align: center;
+}
+
+.final-total-section {
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+}
+
+.final-total-section .total-final {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: #e84118;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1.3rem;
+  box-shadow: 0 4px 12px rgba(232, 65, 24, 0.3);
+  margin-top: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.final-total-section .total-final:hover {
+  transform: scale(1.02);
+}
+
+.final-total-section .total-sum {
+  color: white;
+  font-size: 1.3rem;
+}
+
+
+.anonymous-work .interval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.anonymous-work .interval-table th,
+.anonymous-work .interval-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-weight: normal;
+}
+
+.anonymous-work .interval-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.7rem;
+}
+
+.anonymous-work .interval-table tr:last-child td {
+  border-bottom: none;
+}
+
+.order-right .anonymous-work,
+.order-right .rating-section {
+  background: white;
+  padding: 1.2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-bottom: 1.5rem;
+  border: 1px solid #eee;
+}
+

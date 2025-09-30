@@ -1,13 +1,23 @@
+from django.shortcuts import render, redirect
+from django.http import Http404
+from .models import Composer 
 
-from django.shortcuts import render, get_object_or_404, redirect
+ORDERS = {1: [1, 2, 3]}
+CURRENT_ORDER_ID = 1
 
+ANONYMOUS_WORK_STATS = [
+    {"IntervalGroup": "Унисоны и секунды", "Frequency": 30.0},
+    {"IntervalGroup": "Терции", "Frequency": 5.0},
+    {"IntervalGroup": "Кварты и квинты", "Frequency": 20.0},
+    {"IntervalGroup": "Сексты и септимы", "Frequency": 35.0},
+    {"IntervalGroup": "Октавы", "Frequency": 10.0},
+]
 
 composerProfiles = [
     {
         "ID": 1,
         "Name": "Макс Рихтер",
         "AnalyzedWorks": 18,
-        "AnalysisCost": 660,
         "TotalIntervals": 188190,
         "PortraitURL": "http://localhost:9000/images/richter-6x9.jpg",
         "Period": "2002 - настоящее время",
@@ -25,7 +35,6 @@ composerProfiles = [
         "ID": 2,
         "Name": "Людвиг Ван Бетховен",
         "AnalyzedWorks": 32,
-        "AnalysisCost": 890,
         "TotalIntervals": 285430,
         "PortraitURL": "http://localhost:9000/images/bethoven.jpg",
         "Period": "1770-1827",
@@ -43,7 +52,6 @@ composerProfiles = [
         "ID": 3,
         "Name": "Дзё Хисаиси",
         "AnalyzedWorks": 24,
-        "AnalysisCost": 720,
         "TotalIntervals": 215670,
         "PortraitURL": "http://localhost:9000/images/dze.jpg",
         "Period": "1981 - настоящее время",
@@ -61,7 +69,6 @@ composerProfiles = [
         "ID": 4,
         "Name": "Пьер Булез",
         "AnalyzedWorks": 16,
-        "AnalysisCost": 580,
         "TotalIntervals": 172890,
         "PortraitURL": "http://localhost:9000/images/PierB.jpg",
         "Period": "1925-2016",
@@ -79,7 +86,6 @@ composerProfiles = [
         "ID": 5,
         "Name": "Дюк Эллингтон",
         "AnalyzedWorks": 28,
-        "AnalysisCost": 820,
         "TotalIntervals": 245320,
         "PortraitURL": "http://localhost:9000/images/DuckE.jpg",
         "Period": "1899-1974",
@@ -97,7 +103,6 @@ composerProfiles = [
         "ID": 6,
         "Name": "Филип Гласс",
         "AnalyzedWorks": 22,
-        "AnalysisCost": 750,
         "TotalIntervals": 198560,
         "PortraitURL": "http://localhost:9000/images/PhilG.jpg",
         "Period": "1937 - настоящее время",
@@ -113,82 +118,92 @@ composerProfiles = [
     },
 ]
 
+def build_composer_objects():
+    composers = []
+    for cp in composerProfiles:
+        composer = Composer(
+            id=cp["ID"],
+            name=cp["Name"],
+            portrait_url=cp["PortraitURL"],
+            period=cp["Period"],
+            analyzed_works=cp["AnalyzedWorks"],
+            total_intervals=cp["TotalIntervals"],
+            polyphony_type=cp["PolyphonyType"],
+            biography=cp["Biography"],
+            interval_stats=[
+                {
+                    "interval_group": stat["IntervalGroup"],
+                    "frequency": stat["Frequency"],
+                    "std_dev": stat["StdDev"]
+                }
+                for stat in cp["IntervalStats"]
+            ]
+        )
+        composers.append(composer)
+    return composers
 
-def getComposerById(composer_id):
-    for composer in composerProfiles:
-        if composer["ID"] == composer_id:
-            return composer
-    return None
+ALL_COMPOSERS = build_composer_objects()
+COMPOSER_DICT = {c.id: c for c in ALL_COMPOSERS}
 
+def get_composer_by_id(composer_id):
+    return COMPOSER_DICT.get(composer_id)
 
-def getComposers():
-    return composerProfiles
-
-
-def searchComposers(pattern):
+def search_composers(pattern):
     if not pattern:
-        return composerProfiles
+        return ALL_COMPOSERS
     pattern = pattern.lower()
-    return [c for c in composerProfiles if pattern in c["Name"].lower()]
+    return [c for c in ALL_COMPOSERS if pattern in c.name.lower()]
 
+def calculate_match_percentage(composer_interval_stats, anonymous_stats):
+    total_diff = 0.0
+    n = len(anonymous_stats)
+    for i in range(n):
+        comp_freq = composer_interval_stats[i]["frequency"]
+        anon_freq = anonymous_stats[i]["Frequency"]
+        total_diff += abs(comp_freq - anon_freq)
+    avg_diff = total_diff / n
+    return round(max(0.0, 100.0 - avg_diff), 1)
 
-def getAttributionCandidates():
-    return composerProfiles[:3]
 
 
 def get_composers_with_stats(request):
-    search_pattern = request.GET.get('query', '')
-    
-    if search_pattern:
-        composers = searchComposers(search_pattern)
-    else:
-        composers = getComposers()
-
-    attribution_candidates = getAttributionCandidates()
-    candidate_count = len(attribution_candidates)
-
+    search_pattern = request.GET.get('composerName', '')
+    composers = search_composers(search_pattern)
+    cart_count = len(ORDERS.get(CURRENT_ORDER_ID, []))
     return render(request, 'main_page.html', {
         'composerProfiles': composers,
         'searchPattern': search_pattern,
-        'candidateCount': candidate_count,
+        'candidateCount': cart_count,
     })
 
-
 def get_composer_interval_profile(request, id):
-    composer = getComposerById(id)
+    composer = get_composer_by_id(id)
     if not composer:
-        from django.http import Http404
         raise Http404("Композитор не найден")
-    
     return render(request, 'composer_profile.html', {
         'composer': composer,
     })
 
-
 def view_attribution_results(request):
-    attribution_candidates = getAttributionCandidates()
+    composer_ids = ORDERS.get(CURRENT_ORDER_ID, [])
+    candidates = []
+    match_results = {}
 
-    candidates_with_prices = []
-    total_sum = 0.0
+    for cid in composer_ids:
+        composer = get_composer_by_id(cid)
+        if composer:
+            match_percent = calculate_match_percentage(
+                composer.interval_stats,
+                ANONYMOUS_WORK_STATS
+            )
+            composer.MatchPercent = match_percent  
+            candidates.append(composer)
+            match_results[str(cid)] = match_percent
 
-    for candidate in attribution_candidates:
-        calculated_price = float(candidate["AnalysisCost"]) * 300 / 60
-        total_sum += calculated_price
-        candidate_with_price = {**candidate, "CalculatedPrice": calculated_price}
-        candidates_with_prices.append(candidate_with_price)
+    candidates.sort(key=lambda x: x.MatchPercent, reverse=True)
 
     return render(request, 'attribution_candidates.html', {
-        'attributionCandidates': candidates_with_prices,
-        'totalSum': total_sum,
+        'attributionCandidates': candidates,
+        'anonymousStats': ANONYMOUS_WORK_STATS,
     })
 
-
-def add_to_cart(request):
-    if request.method == "POST":
-        composer_id = request.POST.get("composer_id")
-        if "cart" not in request.session:
-            request.session["cart"] = []
-        request.session["cart"].append(composer_id)
-        request.session.modified = True
-
-    return redirect("main_page")
