@@ -14,15 +14,15 @@ urlpatterns = [
     path('analyses/<int:pk>/complete-or-reject/', views.AnalysisCompleteOrRejectView.as_view(), name='analysis-complete-or-reject'),
     
     # Корзина
-    path('cart-icon/', views.CartIconView.as_view(), name='cart-icon'),
+    path('analyses/attributionDraft/', views.CartIconView.as_view(), name='cart-icon'),
 
     # М-М: управление связью композитор-анализ
     path('analyses/<int:analysis_id>/composer/<int:composer_id>/',  views.ComposerAnalysisUpdateView.as_view(), name='composer-analysis-update'),
     path('analyses/<int:analysis_id>/composer/<int:composer_id>/delete/', views.ComposerAnalysisDeleteView.as_view(), name='composer-analysis-delete'),
 
     # Пользователь
-    path('register/', views.UserRegisterView.as_view(), name='user-register'),
-    path('login/', views.UserLoginView.as_view(), name='user-login'),
-    path('logout/', views.UserLogoutView.as_view(), name='user-logout'),
-    path('profile/', views.UserProfileView.as_view(), name='user-profile'),
+    path('attributionUser/register/', views.UserRegisterView.as_view(), name='user-register'),
+    path('attributionUser/login/', views.UserLoginView.as_view(), name='user-login'),
+    path('attributionUser/logout/', views.UserLogoutView.as_view(), name='user-logout'),
+    path('attributionUser/profile/', views.UserProfileView.as_view(), name='user-profile'),
 ]

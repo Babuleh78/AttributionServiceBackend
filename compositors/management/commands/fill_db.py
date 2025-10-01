@@ -113,7 +113,8 @@ def add_users():
             email="creator@example.com",
             password="1234",
             first_name="Creator",
-            last_name="User"
+            last_name="User",
+            is_staff = True,
         )
 
     # Дополнительные пользователи

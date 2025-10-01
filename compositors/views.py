@@ -49,7 +49,7 @@ class ComposerDetailView(APIView):
     def put(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
         data = request.data.copy()
-        # Удаляем системные/запрещённые поля
+
         for field in ['status']:
             data.pop(field, None)
         serializer = ComposerSerializer(composer, data=data, partial=True)
@@ -88,7 +88,6 @@ class AddComposerToDraftView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        # Только создатель может добавлять в черновик
         creator = get_creator()
         if request.user != creator:
             return Response({"error": "Only creator can add to draft"}, status=status.HTTP_403_FORBIDDEN)
@@ -120,7 +119,6 @@ class AddComposerToDraftView(APIView):
 
 class AnalysisListView(APIView):
     def get(self, request):
-        # Исключаем ТОЛЬКО удалённые (статус=5)
         analyses = Analysis.objects.exclude(status=5)
 
         status_filter = request.query_params.get('status')
@@ -150,15 +148,13 @@ class AnalysisDetailView(APIView):
             composers_data.append({
                 "id": composer.id,
                 "name": composer.name,
-                "biography": composer.biography,  # ← исправлено
-                "portrait_url": composer.portrait_url,  # ← исправлено
+                "biography": composer.biography,  
+                "portrait_url": composer.portrait_url,  
                 "analyzed_works": composer.analyzed_works,
                 "total_intervals": composer.total_intervals,
                 "period": composer.period,
                 "polyphony_type": composer.polyphony_type,
                 "interval_stats": composer.interval_stats,
-                "anonymous_interval_stats": ca.anonymous_interval_stats,
-                "potential_coincidence": ca.potential_coincidence,
             })
 
         data = {
@@ -178,8 +174,11 @@ class AnalysisDetailView(APIView):
         if analysis.status == 5:
             return Response({"error": "Analysis not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Запрещаем изменение системных полей
-        protected_fields = {'id', 'status', 'owner', 'moderator', 'date_created', 'date_formation', 'date_complete'}
+        if not request.user.is_superuser:
+            protected_fields = {'id', 'status', 'owner', 'moderator', 'date_created', 'date_formation', 'date_complete'}
+        else:
+            protected_fields = {'id', 'owner'}
+
         data = {k: v for k, v in request.data.items() if k not in protected_fields}
 
         serializer = AnalysisSerializer(analysis, data=data, partial=True)
@@ -229,7 +228,6 @@ class AnalysisCompleteOrRejectView(APIView):
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
 
-        # Только модератор (is_staff) может завершать/отклонять
         if not request.user.is_staff:
             return Response({"error": "Only moderators can complete or reject"}, status=status.HTTP_403_FORBIDDEN)
         if analysis.status != 2:
@@ -239,12 +237,11 @@ class AnalysisCompleteOrRejectView(APIView):
         if action not in ['complete', 'reject']:
             return Response({"error": "'action' must be 'complete' or 'reject'"}, status=status.HTTP_400_BAD_REQUEST)
 
-        analysis.moderator = request.user  # ← не от клиента!
+        analysis.moderator = request.user  
         analysis.date_complete = timezone.now()
 
         if action == 'complete':
             analysis.status = 3
-            # Здесь можно добавить расчёт potential_coincidence, если нужно
         else:
             analysis.status = 4
 
@@ -321,7 +318,6 @@ class ComposerAnalysisUpdateView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-# === User Views (без изменений) ===
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
