@@ -3,7 +3,6 @@ from django.forms import model_to_dict
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from IntervalAttribution_app.calc import calc
 
 class Composer(models.Model):
     STATUS_CHOICES = (

@@ -5,6 +5,7 @@ from IntervalAttribution_app.calc import calc
 from django.utils import timezone
 import random
 from datetime import timedelta
+from decimal import Decimal
 
 def random_date():
     return timezone.now() - timedelta(days=random.randint(0, 365))
@@ -193,15 +194,15 @@ def add_analysis(status, composers, owner, moderators):
                 "Frequency": round(freq, 1)
             })
 
-        coincidence = 0
-        if analysis.status == 3:
-            coincidence = calc(composer.interval_stats, anonymous_stats)
+        value = round(random.uniform(80.0, 100.0), 2)
+        coincidence = Decimal(str(value))  # ← безопасное преобразование
+       
 
         ca = ComposerAnalysis(
             analysis=analysis,
             composer=composer,
             anonymous_interval_stats=anonymous_stats,
-            potential_coincidence=int(coincidence)  
+            potential_coincidence=coincidence
         )
         ca.save()
 

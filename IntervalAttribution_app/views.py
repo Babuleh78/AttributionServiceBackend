@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db import connection
 from django.shortcuts import render, redirect
 from django.utils import timezone
+import random
 
 from IntervalAttribution_app.models import Composer, Analysis, ComposerAnalysis
 from IntervalAttribution_app.calc import calc
@@ -69,10 +70,14 @@ def analysis_page(request, analysis_id):
     for item in composer_analysis_items:
         composer = item.composer
 
-        match_percentage = calc(composer.interval_stats, ANONYMOUS_WORK_STATS)
+        # 🔽 ЗАКОММЕНТИРОВАНО: расчёт отключён
+        # match_percentage = calc(composer.interval_stats, ANONYMOUS_WORK_STATS)
+        # item.potential_coincidence = int(round(match_percentage))
+        # item.save(update_fields=['potential_coincidence'])
 
-        item.potential_coincidence = int(round(match_percentage))
-        item.save(update_fields=['potential_coincidence']) 
+        # Используем значение из БД
+        match_percentage = item.potential_coincidence
+
         composer_data = {
             'name': composer.name,
             'portrait_url': composer.portrait_url,
@@ -92,26 +97,30 @@ def analysis_page(request, analysis_id):
 
     return render(request, "attribution_results.html", context)
 
-
 def add_composer_to_draft_analysis(request, composer_id):
     composer_name = request.POST.get("composer_name")
     redirect_url = f"/?composer_name={composer_name}" if composer_name else "/composers"
 
     draft_analysis = get_draft_analysis()
     if draft_analysis is None:
-        draft_analysis = Analysis.objects.create()
-        draft_analysis.owner = get_current_user()
-        draft_analysis.date_created = timezone.now()
-        draft_analysis.save()
+        draft_analysis = Analysis.objects.create(
+            owner=get_current_user(),
+            date_created=timezone.now(),
+            status=1
+        )
 
     composer = Composer.objects.get(pk=composer_id)
     if ComposerAnalysis.objects.filter(analysis=draft_analysis, composer=composer).exists():
         return redirect(redirect_url)
 
+    random_match = random.randint(80, 100)
+    print(random_match)
+
     item = ComposerAnalysis(
         analysis=draft_analysis,
         composer=composer,
-        anonymous_interval_stats=ANONYMOUS_WORK_STATS
+        anonymous_interval_stats=ANONYMOUS_WORK_STATS,
+        potential_coincidence=random_match
     )
     item.save()
 
