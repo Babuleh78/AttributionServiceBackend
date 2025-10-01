@@ -22,7 +22,7 @@
             <h1 class="composer-title">{{ composer.name }}</h1>
             
             <div class="composer-image">
-                <img src="{{ composer.image }}" alt="{{ composer.name }}">
+                <img src="{{ composer.portrait_url }}" alt="{{ composer.name }}">
             </div>
 
             <div class="interval-stats">
@@ -35,7 +35,7 @@
                             <th>Стандартное отклонение</th>
                         </tr>
                     </thead>
-                    <tbody>
+                   <tbody>
                         {% for stat in composer.interval_stats %}
                         <tr>
                             <td>{{ stat.IntervalGroup }}</td>
@@ -63,10 +63,6 @@
                         <span class="info-value">{{ composer.analyzed_works }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Цена анализа:</span>
-                        <span class="info-value">{{ composer.price }}р</span>
-                    </div>
-                    <div class="info-item">
                         <span class="info-label">Общее количество интервалов:</span>
                         <span class="info-value">{{ composer.total_intervals }}</span>
                     </div>
@@ -79,7 +75,7 @@
                 <div class="info-section">
                     <h3>Биография</h3>
                     <div class="info-item">
-                        <span class="bio-label">{{ composer.description }}</span>
+                        <span class="bio-label">{{ composer.biography }}</span>
                     </div>
                 </div>
             </div>

@@ -13,10 +13,9 @@ class Composer(models.Model):
 
     name = models.CharField(max_length=100, verbose_name="Имя")
     status = models.IntegerField(choices=STATUS_CHOICES, default=1, verbose_name="Статус")
-    image = models.ImageField(blank=True, null=True, default='default.png', verbose_name="Изображение")
-    description = models.TextField(verbose_name="Биография")
+    portrait_url = models.URLField(blank=True, null=True, verbose_name="URL портрета",)
+    biography = models.TextField(verbose_name="Биография", blank=True, null=True)
 
-    price = models.IntegerField(verbose_name="Тариф")
 
     analyzed_works = models.IntegerField(default=0, verbose_name="Проанализировано произведений")
     total_intervals = models.IntegerField(default=0, verbose_name="Всего интервалов")
@@ -62,11 +61,7 @@ class Analysis(models.Model):
         composers = []
         for item in ComposerAnalysis.objects.filter(analysis=self):
            
-            composer_data = {
-                **model_to_dict(item.composer),
-                'length': item.length,
-                'value':  -1
-            }
+            composer_data = {**model_to_dict(item.composer)}
             composers.append(composer_data)
         return composers
 
@@ -81,8 +76,12 @@ class Analysis(models.Model):
 class ComposerAnalysis(models.Model):
     composer = models.ForeignKey(Composer, on_delete=models.DO_NOTHING, verbose_name="Композитор")
     analysis = models.ForeignKey(Analysis, on_delete=models.DO_NOTHING, verbose_name="Анализ")
-    length = models.IntegerField(default=0, verbose_name="Длина")
-    value = models.IntegerField(default= 0, blank=True, verbose_name="Значение")
+    anonymous_interval_stats = models.JSONField(
+        default=list,
+        verbose_name="Статистика интервалов",
+        help_text='Список словарей: [{"IntervalGroup": "...", "Frequency": число, "StdDev": число}, ...]'
+    )
+    potential_coincidence = models.IntegerField(default= 0, blank=True, verbose_name="Вероятное совпадения")
 
     def __str__(self):
         return f"м-м №{self.id} (композитор {self.composer_id}, анализ {self.analysis_id})"

@@ -6,17 +6,26 @@ from django.utils import timezone
 from IntervalAttribution_app.models import Composer, Analysis, ComposerAnalysis
 from IntervalAttribution_app.calc import calc
 
+ANONYMOUS_WORK_STATS = [
+    {"IntervalGroup": "Унисоны и секунды", "Frequency": 30.0},
+    {"IntervalGroup": "Терции", "Frequency": 5.0},
+    {"IntervalGroup": "Кварты и квинты", "Frequency": 20.0},
+    {"IntervalGroup": "Сексты и септимы", "Frequency": 35.0},
+    {"IntervalGroup": "Октавы", "Frequency": 10.0},
+]
 
 def index(request):
-    composer_name = request.GET.get("query", "")
+    composer_name = request.GET.get("composerName", "")
     composers = Composer.objects.filter(status=1)
+
+    
 
     if composer_name:
         composers = composers.filter(name__icontains=composer_name)
 
     context = {
         "composer_name": composer_name,
-        "composers": composers
+        "composerProfiles": composers
     }
 
     draft_analysis = get_draft_analysis()
@@ -25,6 +34,8 @@ def index(request):
         context["draft_analysis"] = draft_analysis
 
     return render(request, "main_page.html", context)
+
+
 
 
 def composer_page(request, composer_id):
@@ -41,29 +52,42 @@ def composer_page(request, composer_id):
     return render(request, "composer_profile.html", context)
 
 
+
 def analysis_page(request, analysis_id):
-    if not Analysis.objects.filter(pk=analysis_id).exists():
-        return render(request, "404.html")
+    try:
+        analysis = Analysis.objects.get(pk=analysis_id)
+    except Analysis.DoesNotExist:
+        return render(request, "404.html", status=404)
 
-    analysis = Analysis.objects.get(id=analysis_id)
-    
-    if analysis.status == 5:
-        return render(request, "404.html")
+    if analysis.status == 5:  
+        return render(request, "404.html", status=404)
 
-    total_sum = 0
-    composers_with_cost = []  
-    composers = analysis.get_composers() 
+    composer_analysis_items = ComposerAnalysis.objects.filter(analysis=analysis).select_related('composer')
 
-    for composer in composers:
-        calculated_cost = int(calc(composer))
-        total_sum += calculated_cost
-        composer_with_cost = {**composer, 'calculated_cost': calculated_cost}
-        composers_with_cost.append(composer_with_cost)
+    composers_with_cost = []
+
+    for item in composer_analysis_items:
+        composer = item.composer
+
+        match_percentage = calc(composer.interval_stats, ANONYMOUS_WORK_STATS)
+
+        item.potential_coincidence = int(round(match_percentage))
+        item.save(update_fields=['potential_coincidence']) 
+        composer_data = {
+            'name': composer.name,
+            'portrait_url': composer.portrait_url,
+            'period': composer.period,
+            'analyzed_works': composer.analyzed_works,
+            'total_intervals': composer.total_intervals,
+            'interval_stats': composer.interval_stats,
+            'MatchPercent': match_percentage,
+        }
+        composers_with_cost.append(composer_data)
 
     context = {
         "analysis": analysis,
-        "totalSum": total_sum,
-        "composers": composers_with_cost,  
+        "composers": composers_with_cost,
+        "anonymousStats": ANONYMOUS_WORK_STATS,
     }
 
     return render(request, "attribution_results.html", context)
@@ -86,7 +110,8 @@ def add_composer_to_draft_analysis(request, composer_id):
 
     item = ComposerAnalysis(
         analysis=draft_analysis,
-        composer=composer
+        composer=composer,
+        anonymous_interval_stats=ANONYMOUS_WORK_STATS
     )
     item.save()
 

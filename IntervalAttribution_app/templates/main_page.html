@@ -23,29 +23,30 @@
                 <div class="search-container">
                     <input 
                         type="text" 
-                        name="query" 
+                        name="composerName"         
                         placeholder="Найти композитора..." 
-                        value="{{ query }}"
+                        value="{{ searchPattern }}" 
                         class="search-input"
                     >
                     <button type="submit" class="search-button">
-                        <img src="static/images/search-icon.png" alt="Search" width="20" height="20">
+                        <img src="{% static 'images/search-icon.png' %}" alt="Search" width="20" height="20">
                     </button>
                 </div>
             </form>
         </div>
 
         <div class="composers-grid">
-           {% for composer in composers %}
+            {% for composer in composerProfiles %}
             <div class="composer-card">
                 <div class="composer-image">
-                    <img 
-                            src="{{ composer.image }}" 
-                            alt="{{ composer.name }}" 
+                        {% static 'images/default-composer.png' as default_image %}
+                        <img 
+                            src="{% if composer.portrait_url %}{{ composer.portrait_url }}{% else %}{{ default_image }}{% endif %}" 
+                            alt="{{ composer.name }}"
+                            onerror="this.src='{{ default_image }}'"
                         >
-                </div>
-
-                <div class="composer-content">
+                    </div>
+                <div class="composer-content" >
                     <div class="composer-header">
                         <h3 class="composer-name">{{ composer.name }}</h3>
                     </div>
@@ -57,23 +58,22 @@
                         </div>
                         
                         <div class="stat-item">
-                            <span class="stat-label">Цена анализа:</span>
-                            <span class="stat-value">{{ composer.price }}р</span>
+                            <span class="stat-label">Общее количество интервалов:</span>
+                            <span class="stat-value">{{ composer.total_intervals }}</span>
                         </div>
-                        
                     </div>
                     
                     <div class="composer-actions">
-                        <a href="/composers/{{ composer.id }}" class="details-link">Подробнее</a>
-                
+                        <a href="{% url 'composer_page' composer.id %}" class="details-link">Подробнее</a>
+                    </div>
+
                     <form method="POST" action="{% url 'add_composer_to_draft_analysis' composer.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="composer_id" value="{{ composer.id }}">
                             <input type="hidden" name="redirect_url" value="/main">
                             <button type="submit" class="order-link">Добавить в заявку</button>
                         </form>
-                    </div>
-
+                    <
                 </div>
             </div>
             {% empty %}
@@ -82,7 +82,7 @@
         </div>
     </main>
 
-   {% load static %}
+    {% load static %}
 
         {% if draft_analysis %}
             <div class="cart-icon-container">
@@ -103,6 +103,5 @@
                 </a>
             </div>
         {% endif %}
-
 </body>
 </html>
