@@ -55,6 +55,20 @@ class Analysis(models.Model):
     owner = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="Пользователь", null=True, related_name='owner')
     moderator = models.ForeignKey(User, on_delete=models.DO_NOTHING, verbose_name="Модератор", null=True, related_name='moderator')
 
+    composers_list = models.JSONField(
+        default=list,
+        verbose_name="Список композиторов",
+    )
+
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        
+        if 'composers_list' not in (kwargs.get('update_fields') or []):
+            new_composers_list = self.get_composers()
+            if self.composers_list != new_composers_list:
+                self.composers_list = new_composers_list
+                super().save(update_fields=['composers_list'])
 
     def get_composers(self):
         composers = []
@@ -80,8 +94,7 @@ class ComposerAnalysis(models.Model):
         verbose_name="Статистика интервалов",
         help_text='Список словарей: [{"IntervalGroup": "...", "Frequency": число, "StdDev": число}, ...]'
     )
-    potential_coincidence = models.IntegerField(default= 0, blank=True, verbose_name="Вероятное совпадения")
-
+    potential_coincidence = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,verbose_name="Вероятное совпадение")
     def __str__(self):
         return f"м-м №{self.id} (композитор {self.composer_id}, анализ {self.analysis_id})"
 

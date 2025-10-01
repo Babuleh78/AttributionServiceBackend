@@ -195,7 +195,7 @@ def add_analysis(status, composers, owner, moderators):
             })
 
         value = round(random.uniform(80.0, 100.0), 2)
-        coincidence = Decimal(str(value))  # ← безопасное преобразование
+        coincidence = Decimal(str(value))  
        
 
         ca = ComposerAnalysis(
