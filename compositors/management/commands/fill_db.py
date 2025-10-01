@@ -1,7 +1,16 @@
 from django.core.management.base import BaseCommand
-from compositors.utils import *
-from compositors.models import *
+from django.contrib.auth.models import User
+from compositors.models import Composer, Analysis, ComposerAnalysis
+from compositors.calc import calc
+from django.utils import timezone
 import random
+from datetime import timedelta
+
+def random_date():
+    return timezone.now() - timedelta(days=random.randint(0, 365))
+
+def random_timedelta():
+    return timedelta(days=random.randint(1, 30))
 
 
 composerProfiles = [
@@ -9,9 +18,7 @@ composerProfiles = [
         "ID": 1,
         "Name": "Макс Рихтер",
         "AnalyzedWorks": 18,
-        "AnalysisCost": 399,
         "TotalIntervals": 188190,
-        "PortraitURL": "http://localhost:9000/images/richter-6x9.jpg",
         "Period": "2002 - настоящее время",
         "PolyphonyType": "Минималистичный контрапункт",
         "IntervalStats": [
@@ -27,9 +34,7 @@ composerProfiles = [
         "ID": 2,
         "Name": "Людвиг Ван Бетховен",
         "AnalyzedWorks": 32,
-        "AnalysisCost": 419,
         "TotalIntervals": 285430,
-        "PortraitURL": "http://localhost:9000/images/bethoven.jpg",
         "Period": "1770-1827",
         "PolyphonyType": "Классика + контрапункт",
         "IntervalStats": [
@@ -45,9 +50,7 @@ composerProfiles = [
         "ID": 3,
         "Name": "Дзё Хисаиси",
         "AnalyzedWorks": 24,
-        "AnalysisCost": 459,
         "TotalIntervals": 215670,
-        "PortraitURL": "http://localhost:9000/images/dze.jpg",
         "Period": "1981 - настоящее время",
         "PolyphonyType": "Остинато",
         "IntervalStats": [
@@ -63,9 +66,7 @@ composerProfiles = [
         "ID": 4,
         "Name": "Пьер Булез",
         "AnalyzedWorks": 16,
-        "AnalysisCost": 419,
         "TotalIntervals": 172890,
-        "PortraitURL": "http://localhost:9000/images/PierB.jpg",
         "Period": "1925-2016",
         "PolyphonyType": "Серийный контрапункт",
         "IntervalStats": [
@@ -81,9 +82,7 @@ composerProfiles = [
         "ID": 5,
         "Name": "Дюк Эллингтон",
         "AnalyzedWorks": 28,
-        "AnalysisCost": 489,
         "TotalIntervals": 245320,
-        "PortraitURL": "http://localhost:9000/images/DuckE.jpg",
         "Period": "1899-1974",
         "PolyphonyType": "Джазовая гетерофония",
         "IntervalStats": [
@@ -95,56 +94,61 @@ composerProfiles = [
         ],
         "Biography": "Американский джазовый композитор, пианист и руководитель оркестра. Один из наиболее влиятельных фигур в истории джаза. Создал уникальный оркестровый звук и написал более 1000 произведений.",
     },
-    {
-        "ID": 6,
-        "Name": "Филип Гласс",
-        "AnalyzedWorks": 22,
-        "AnalysisCost": 409,
-        "TotalIntervals": 198560,
-        "PortraitURL": "http://localhost:9000/images/PhilG.jpg",
-        "Period": "1937 - настоящее время",
-        "PolyphonyType": "Минималистичная гетерофония",
-        "IntervalStats": [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": 33.5, "StdDev": 1.8},
-            {"IntervalGroup": "Терции", "Frequency": 22.3, "StdDev": 1.6},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": 21.7, "StdDev": 1.7},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": 13.9, "StdDev": 1.4},
-            {"IntervalGroup": "Октавы", "Frequency": 8.6, "StdDev": 1.2},
-        ],
-        "Biography": "Американский композитор-минималист. Один из наиболее влиятельных композиторов конца XX - начала XXI века. Известен своими повторяющимися структурами и гипнотическими музыкальными паттернами.",
-    },
 ]
 
 
 def add_users():
-    User.objects.create_user("user", "user@user.com", "1234", first_name="user", last_name="user")
-    User.objects.create_superuser("root", "root@root.com", "1234", first_name="root", last_name="root")
+    # Обычный пользователь
+    if not User.objects.filter(username="user").exists():
+        User.objects.create_user("user", "user@user.com", "1234", first_name="user", last_name="user")
+    
+    # Суперпользователь 
+    if not User.objects.filter(username="root").exists():
+        User.objects.create_superuser("root", "root@root.com", "1234", first_name="root", last_name="root")
 
+    # Пользователь-создатель 
+    if not User.objects.filter(username="creator").exists():
+        User.objects.create_user(
+            username="creator",
+            email="creator@example.com",
+            password="1234",
+            first_name="Creator",
+            last_name="User"
+        )
+
+    # Дополнительные пользователи
     for i in range(1, 10):
-        User.objects.create_user(f"user{i}", f"user{i}@user.com", "1234", first_name=f"user{i}", last_name=f"user{i}")
-        User.objects.create_superuser(f"root{i}", f"root{i}@root.com", "1234", first_name=f"user{i}", last_name=f"user{i}")
-
+        if not User.objects.filter(username=f"user{i}").exists():
+            User.objects.create_user(f"user{i}", f"user{i}@user.com", "1234", first_name=f"user{i}", last_name=f"user{i}")
+        if not User.objects.filter(username=f"root{i}").exists():
+            User.objects.create_superuser(f"root{i}", f"root{i}@root.com", "1234", first_name=f"root{i}", last_name=f"root{i}")
 
 def add_composers():
     for composer_data in composerProfiles:
+        if Composer.objects.filter(name=composer_data["Name"]).exists():
+            continue
+
         Composer.objects.create(
             name=composer_data["Name"],
-            description=composer_data["Biography"],
-            price=composer_data["AnalysisCost"],
+            biography=composer_data["Biography"], 
             analyzed_works=composer_data["AnalyzedWorks"],
             total_intervals=composer_data["TotalIntervals"],
             period=composer_data["Period"],
             polyphony_type=composer_data["PolyphonyType"],
-            image=composer_data["PortraitURL"],
+            portrait_url=composer_data.get("PortraitURL"),  
             interval_stats=composer_data["IntervalStats"]
-
         )
+
 
 
 def add_analysiss():
     users = User.objects.filter(is_staff=False)
     moderators = User.objects.filter(is_staff=True)
     composers = Composer.objects.all()
+
+    if not users.exists() or not moderators.exists() or not composers.exists():
+        print("Недостаточно данных для создания анализов")
+        return
 
     for _ in range(30):
         status = random.randint(2, 5)
@@ -156,8 +160,7 @@ def add_analysiss():
 
 
 def add_analysis(status, composers, owner, moderators):
-    analysis = Analysis.objects.create()
-    analysis.status = status
+    analysis = Analysis(status=status, owner=owner)
 
     if status in [3, 4]:
         analysis.moderator = random.choice(moderators)
@@ -168,26 +171,35 @@ def add_analysis(status, composers, owner, moderators):
         analysis.date_formation = random_date()
         analysis.date_created = analysis.date_formation - random_timedelta()
 
-    analysis.owner = owner
-
-    for composer in random.sample(list(composers), 3):
-        item = ComposerAnalysis(
-            analysis=analysis,
-            composer=composer,
-            length=100 * random.randint(1, 6),
-        )
-
-        if analysis.status == 3:
-            item.value = -1
-
-        item.save()
-
     analysis.save()
 
+    selected_composers = random.sample(list(composers), min(3, len(composers)))
+    for composer in selected_composers:
+        anonymous_stats = []
+        for group in composer.interval_stats:
+            noise = random.uniform(-5.0, 5.0)
+            freq = max(0.0, group["Frequency"] + noise)
+            anonymous_stats.append({
+                "IntervalGroup": group["IntervalGroup"],
+                "Frequency": round(freq, 1)
+            })
+
+        coincidence = 0
+        if analysis.status == 3:
+            coincidence = calc(composer.interval_stats, anonymous_stats)
+
+        ca = ComposerAnalysis(
+            analysis=analysis,
+            composer=composer,
+            anonymous_interval_stats=anonymous_stats,
+            potential_coincidence=int(coincidence)  
+        )
+        ca.save()
 
 class Command(BaseCommand):
+
     def handle(self, *args, **kwargs):
         add_users()
         add_composers()
         add_analysiss()
-        print("База данных успешно заполнена!")
+        self.stdout.write(self.style.SUCCESS("База данных успешно заполнена!"))

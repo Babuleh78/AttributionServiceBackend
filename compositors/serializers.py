@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 from .models import Composer, Analysis, ComposerAnalysis, User  
 from django.contrib.auth import authenticate
@@ -9,23 +8,23 @@ class ComposerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Composer
         fields = [
-            'id', 'name', 'description', 'price',
-            'image', 'analyzed_works', 'total_intervals',
+            'id', 'name', 'biography',  # вместо 'description'
+            'portrait_url',  # вместо 'image'
+            'analyzed_works', 'total_intervals',
             'period', 'polyphony_type', 'interval_stats'
         ]
         read_only_fields = ['status']
 
+    # Убираем to_representation — он не нужен, если portrait_url уже URLField
+    # Если всё же нужно переименовать portrait_url → image в API:
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.image:
-            data['image'] = instance.image  
+        # Опционально: если клиент ожидает поле 'image'
+        data['image'] = data.pop('portrait_url', None)
         return data
 
+
 class AnalysisSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для анализа (Analysis)
-    Включает информацию о владельце и модераторе (по логинам)
-    """
     owner_login = serializers.SerializerMethodField()
     moderator_login = serializers.SerializerMethodField()
 
@@ -44,24 +43,25 @@ class AnalysisSerializer(serializers.ModelSerializer):
 
 
 class ComposerAnalysisSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для м-м связи (ComposerAnalysis)
-    Включает поля length и value
-    """
-    composer = ComposerSerializer(read_only=True)  
+    composer = ComposerSerializer(read_only=True)
 
     class Meta:
         model = ComposerAnalysis
-        fields = ['composer', 'length', 'value']
+        fields = [
+            'composer',
+            'anonymous_interval_stats',
+            'potential_coincidence'
+        ]
 
 
 class FullAnalysisSerializer(serializers.ModelSerializer):
-    """
-    Полный сериализатор для анализа — включает список композиторов с данными
-    """
     owner_login = serializers.SerializerMethodField()
     moderator_login = serializers.SerializerMethodField()
-    composers = ComposerAnalysisSerializer(many=True, read_only=True)
+    composers = ComposerAnalysisSerializer(
+        source='composeranalysis_set',  # ← важно!
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Analysis
@@ -75,9 +75,9 @@ class FullAnalysisSerializer(serializers.ModelSerializer):
 
     def get_moderator_login(self, obj):
         return obj.moderator.username if obj.moderator else None
-    
 
 
+# Остальные сериализаторы без изменений
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -111,4 +111,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
-        read_only_fields = ['username'] 
+        read_only_fields = ['username']

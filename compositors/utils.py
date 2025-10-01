@@ -1,11 +1,18 @@
 
 from minio import Minio
-import uuid
 import random
 from datetime import timedelta
 from faker import Faker
+import os
+import unicodedata
+import re
 
 f = Faker("ru_RU")
+
+def safe_filename(filename):
+    filename = unicodedata.normalize('NFKD', filename).encode('ascii', 'ignore').decode('ascii')
+    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+    return re.sub(r'_+', '_', filename).strip('_')
 
 def upload_image_to_minio(django_file, bucket_name="services-images"):
     """
@@ -21,14 +28,19 @@ def upload_image_to_minio(django_file, bucket_name="services-images"):
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
 
-    filename = f"composer_{uuid.uuid4().hex}.jpg"
+    # Безопасное имя файла
+    original_name = os.path.basename(django_file.name)
+    filename = safe_filename(original_name)
+
+    # Сбрасываем указатель файла
+    django_file.seek(0)
 
     client.put_object(
         bucket_name,
         filename,
-        data=django_file,         
-        length=django_file.size,   
-        content_type="image/jpeg"
+        data=django_file,
+        length=django_file.size,
+        content_type=django_file.content_type  # ← динамический тип
     )
 
     return f"http://localhost:9000/{bucket_name}/{filename}"
@@ -37,9 +49,9 @@ def delete_image_from_minio(image_url):
     if not image_url:
         return
     client = Minio(
-        "localhost:9000",
-        access_key="minioadmin",
-        secret_key="minioadmin",
+        "minio:9000",          
+        access_key="minio",    
+        secret_key="minio123",
         secure=False
     )
     key = image_url.split('/')[-1]
@@ -47,8 +59,6 @@ def delete_image_from_minio(image_url):
         client.remove_object("services-images", key)
     except Exception as e:
         print(f"Ошибка при удалении изображения: {e}")
-
-import os
 
 def get_minio_client():
     return Minio(
