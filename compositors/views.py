@@ -18,7 +18,8 @@ from .utils import upload_image_to_minio, delete_image_from_minio
 
 
 def get_creator():
-    return User.objects.get(username="creator")  
+    return User.objects.get(username="creator")
+
 
 
 class ComposerListView(APIView):
@@ -49,9 +50,7 @@ class ComposerDetailView(APIView):
     def put(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
         data = request.data.copy()
-
-        for field in ['status']:
-            data.pop(field, None)
+        data.pop('status', None)  # запрещено менять напрямую
         serializer = ComposerSerializer(composer, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -60,6 +59,9 @@ class ComposerDetailView(APIView):
 
     def delete(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
+        creator = get_creator()
+        if request.user != creator:
+            return Response({"error": "Only creator can delete composers"}, status=status.HTTP_403_FORBIDDEN)
         if composer.portrait_url:
             delete_image_from_minio(composer.portrait_url)
         composer.status = 2
@@ -68,7 +70,13 @@ class ComposerDetailView(APIView):
 
 
 class ComposerImageUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, pk):
+        creator = get_creator()
+        if request.user != creator:
+            return Response({"error": "Only creator can upload images"}, status=status.HTTP_403_FORBIDDEN)
+
         composer = get_object_or_404(Composer, pk=pk, status=1)
         if 'image' not in request.FILES:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
@@ -148,8 +156,8 @@ class AnalysisDetailView(APIView):
             composers_data.append({
                 "id": composer.id,
                 "name": composer.name,
-                "biography": composer.biography,  
-                "portrait_url": composer.portrait_url,  
+                "biography": composer.biography,
+                "portrait_url": composer.portrait_url,
                 "analyzed_works": composer.analyzed_works,
                 "total_intervals": composer.total_intervals,
                 "period": composer.period,
@@ -174,10 +182,13 @@ class AnalysisDetailView(APIView):
         if analysis.status == 5:
             return Response({"error": "Analysis not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if not request.user.is_superuser:
-            protected_fields = {'id', 'status', 'owner', 'moderator', 'date_created', 'date_formation', 'date_complete'}
-        else:
+        creator = get_creator()
+        if request.user == creator:
+            protected_fields = {'id', 'owner'} 
+        elif request.user.is_superuser:
             protected_fields = {'id', 'owner'}
+        else:
+            protected_fields = {'id', 'status', 'owner', 'moderator', 'date_created', 'date_formation', 'date_complete'}
 
         data = {k: v for k, v in request.data.items() if k not in protected_fields}
 
@@ -190,8 +201,8 @@ class AnalysisDetailView(APIView):
     def delete(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         creator = get_creator()
-        if analysis.status != 1 or analysis.owner != creator or request.user != creator:
-            return Response({"error": "Only creator can delete draft"}, status=status.HTTP_403_FORBIDDEN)
+        if request.user != creator:
+            return Response({"error": "Only creator can delete analysis"}, status=status.HTTP_403_FORBIDDEN)
         analysis.status = 5
         analysis.save()
         return Response({"message": "Analysis deleted"}, status=status.HTTP_200_OK)
@@ -204,7 +215,7 @@ class AnalysisFormulateView(APIView):
         analysis = get_object_or_404(Analysis, pk=pk)
         creator = get_creator()
 
-        if analysis.owner != creator or request.user != creator:
+        if request.user != creator:
             return Response({"error": "Only creator can formulate"}, status=status.HTTP_403_FORBIDDEN)
         if analysis.status != 1:
             return Response({"error": "Only draft analysis can be formulated"}, status=status.HTTP_400_BAD_REQUEST)
@@ -227,9 +238,11 @@ class AnalysisCompleteOrRejectView(APIView):
 
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
+        creator = get_creator()
 
-        if not request.user.is_staff:
-            return Response({"error": "Only moderators can complete or reject"}, status=status.HTTP_403_FORBIDDEN)
+        # Creator может завершать/отклонять даже без is_staff!
+        if not (request.user.is_staff or request.user == creator):
+            return Response({"error": "Only moderators or creator can complete/reject"}, status=status.HTTP_403_FORBIDDEN)
         if analysis.status != 2:
             return Response({"error": "Analysis must be 'In progress'"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -237,7 +250,7 @@ class AnalysisCompleteOrRejectView(APIView):
         if action not in ['complete', 'reject']:
             return Response({"error": "'action' must be 'complete' or 'reject'"}, status=status.HTTP_400_BAD_REQUEST)
 
-        analysis.moderator = request.user  
+        analysis.moderator = request.user
         analysis.date_complete = timezone.now()
 
         if action == 'complete':
@@ -278,22 +291,6 @@ class CartIconView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class ComposerAnalysisDeleteView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request, analysis_id, composer_id):
-        analysis = get_object_or_404(Analysis, pk=analysis_id)
-        creator = get_creator()
-
-        if analysis.owner != creator or request.user != creator:
-            return Response({"error": "Only creator can modify draft"}, status=status.HTTP_403_FORBIDDEN)
-        if analysis.status != 1:
-            return Response({"error": "Can only modify draft"}, status=status.HTTP_400_BAD_REQUEST)
-
-        ca = get_object_or_404(ComposerAnalysis, analysis_id=analysis_id, composer_id=composer_id)
-        ca.delete()
-        return Response({"message": "Composer removed from analysis"}, status=status.HTTP_200_OK)
-
 
 class ComposerAnalysisUpdateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -302,20 +299,52 @@ class ComposerAnalysisUpdateView(APIView):
         analysis = get_object_or_404(Analysis, pk=analysis_id)
         creator = get_creator()
 
-        if analysis.owner != creator or request.user != creator:
+        if request.user != creator:
+            return Response(
+                {"error": "Only creator can modify draft"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if analysis.status != 1:
+            return Response(
+                {"error": "Can only modify draft"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        ca = get_object_or_404(ComposerAnalysis, analysis_id=analysis_id, composer_id=composer_id)
+
+        anonymous_stats = request.data.get('anonymous_interval_stats')
+        potential = request.data.get('potential_coincidence')
+
+        if anonymous_stats is not None:
+            ca.anonymous_interval_stats = anonymous_stats
+        if potential is not None:
+            ca.potential_coincidence = potential
+
+        ca.save()
+
+        return Response({
+            "message": "ComposerAnalysis updated successfully",
+            "anonymous_interval_stats": ca.anonymous_interval_stats,
+            "potential_coincidence": ca.potential_coincidence
+        }, status=status.HTTP_200_OK)
+
+
+class ComposerAnalysisDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, analysis_id, composer_id):
+        analysis = get_object_or_404(Analysis, pk=analysis_id)
+        creator = get_creator()
+
+        if request.user != creator:
             return Response({"error": "Only creator can modify draft"}, status=status.HTTP_403_FORBIDDEN)
         if analysis.status != 1:
             return Response({"error": "Can only modify draft"}, status=status.HTTP_400_BAD_REQUEST)
 
         ca = get_object_or_404(ComposerAnalysis, analysis_id=analysis_id, composer_id=composer_id)
-
-        ca.save()
-
-        return Response({
-            "message": "ComposerAnalysis updated",
-            "anonymous_interval_stats": ca.anonymous_interval_stats,
-            "potential_coincidence": ca.potential_coincidence
-        }, status=status.HTTP_200_OK)
+        ca.delete()
+        return Response({"message": "Composer removed from analysis"}, status=status.HTTP_200_OK)
 
 
 class UserRegisterView(APIView):
@@ -366,4 +395,4 @@ class UserProfileView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

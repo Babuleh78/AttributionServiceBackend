@@ -21,12 +21,20 @@ class Composer(models.Model):
     period = models.CharField(max_length=100, blank=True, verbose_name="Период творчества")
     polyphony_type = models.CharField(max_length=100, blank=True, verbose_name="Тип полифонии")
 
-    interval_stats = models.JSONField(
-        default=list,
-        verbose_name="Статистика интервалов",
-        help_text='Список словарей: [{"IntervalGroup": "...", "Frequency": число, "StdDev": число}, ...]'
-    )
+    unisons_seconds_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Частота: Унисоны и секунды (%)")
+    unisons_seconds_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="СКО: Унисоны и секунды")
 
+    thirds_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Частота: Терции (%)")
+    thirds_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="СКО: Терции")
+
+    fourths_fifths_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Частота: Кварты и квинты (%)") 
+    fourths_fifths_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="СКО: Кварты и квинты")
+    
+    sixths_sevenths_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Частота: Сексты и септимы (%)")
+    sixths_sevenths_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="СКО: Сексты и септимы")
+
+    octaves_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Частота: Октавы (%)")
+    octaves_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="СКО: Октавы")
 
     def __str__(self):
         return self.name
@@ -89,11 +97,22 @@ class Analysis(models.Model):
 class ComposerAnalysis(models.Model):
     composer = models.ForeignKey(Composer, on_delete=models.DO_NOTHING, verbose_name="Композитор")
     analysis = models.ForeignKey(Analysis, on_delete=models.DO_NOTHING, verbose_name="Анализ")
-    anonymous_interval_stats = models.JSONField(
-        default=list,
-        verbose_name="Статистика интервалов",
-        help_text='Список словарей: [{"IntervalGroup": "...", "Frequency": число, "StdDev": число}, ...]'
-    )
+
+    anon_unisons_seconds_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Аноним: Унисоны и секунды (%)")
+    anon_unisons_seconds_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="Аноним СКО: Унисоны и секунды")
+
+    anon_thirds_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Аноним: Терции (%)")
+    anon_thirds_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="Аноним СКО: Терции")
+
+    anon_fourths_fifths_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Аноним: Кварты и квинты (%)")
+    anon_fourths_fifths_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="Аноним СКО: Кварты и квинты")
+
+    anon_sixths_sevenths_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Аноним: Сексты и септимы (%)")
+    anon_sixths_sevenths_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="Аноним СКО: Сексты и септимы")
+
+    anon_octaves_freq = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,verbose_name="Аноним: Октавы (%)")
+    anon_octaves_stddev = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True,verbose_name="Аноним СКО: Октавы")
+    
     potential_coincidence = models.DecimalField(max_digits=5, decimal_places=2, default=0.00,verbose_name="Вероятное совпадение")
     def __str__(self):
         return f"м-м №{self.id} (композитор {self.composer_id}, анализ {self.analysis_id})"

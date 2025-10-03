@@ -15,9 +15,6 @@ def safe_filename(filename):
     return re.sub(r'_+', '_', filename).strip('_')
 
 def upload_image_to_minio(django_file, bucket_name="services-images"):
-    """
-    Загружает файл из Django (InMemoryUploadedFile или TemporaryUploadedFile) в MinIO.
-    """
     client = Minio(
         "minio:9000",  
         access_key="minio",        
@@ -28,11 +25,9 @@ def upload_image_to_minio(django_file, bucket_name="services-images"):
     if not client.bucket_exists(bucket_name):
         client.make_bucket(bucket_name)
 
-    # Безопасное имя файла
     original_name = os.path.basename(django_file.name)
     filename = safe_filename(original_name)
 
-    # Сбрасываем указатель файла
     django_file.seek(0)
 
     client.put_object(
@@ -40,7 +35,7 @@ def upload_image_to_minio(django_file, bucket_name="services-images"):
         filename,
         data=django_file,
         length=django_file.size,
-        content_type=django_file.content_type  # ← динамический тип
+        content_type=django_file.content_type  
     )
 
     return f"http://localhost:9000/{bucket_name}/{filename}"

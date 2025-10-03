@@ -96,17 +96,15 @@ composerProfiles = [
     },
 ]
 
+def get_interval_dict(interval_stats):
+    """Преобразует список IntervalStats в словарь по группам"""
+    return {item["IntervalGroup"]: item for item in interval_stats}
 
 def add_users():
-    # Обычный пользователь
     if not User.objects.filter(username="user").exists():
         User.objects.create_user("user", "user@user.com", "1234", first_name="user", last_name="user")
-    
-    # Суперпользователь 
     if not User.objects.filter(username="root").exists():
         User.objects.create_superuser("root", "root@root.com", "1234", first_name="root", last_name="root")
-
-    # Пользователь-создатель 
     if not User.objects.filter(username="creator").exists():
         User.objects.create_user(
             username="creator",
@@ -114,40 +112,53 @@ def add_users():
             password="1234",
             first_name="Creator",
             last_name="User",
-            is_staff = True,
+            is_staff=True,
         )
-
-    # Дополнительные пользователи
     for i in range(1, 10):
         if not User.objects.filter(username=f"user{i}").exists():
-            User.objects.create_user(f"user{i}", f"user{i}@user.com", "1234", first_name=f"user{i}", last_name=f"user{i}")
+            User.objects.create_user(f"user{i}", f"user{i}@user.com", "1234")
         if not User.objects.filter(username=f"root{i}").exists():
-            User.objects.create_superuser(f"root{i}", f"root{i}@root.com", "1234", first_name=f"root{i}", last_name=f"root{i}")
+            User.objects.create_superuser(f"root{i}", f"root{i}@root.com", "1234")
 
 def add_composers():
     for composer_data in composerProfiles:
         if Composer.objects.filter(name=composer_data["Name"]).exists():
             continue
 
+        stats = get_interval_dict(composer_data["IntervalStats"])
+
         Composer.objects.create(
             name=composer_data["Name"],
-            biography=composer_data["Biography"], 
+            biography=composer_data["Biography"],
             analyzed_works=composer_data["AnalyzedWorks"],
             total_intervals=composer_data["TotalIntervals"],
             period=composer_data["Period"],
             polyphony_type=composer_data["PolyphonyType"],
-            portrait_url=composer_data.get("PortraitURL"),  
-            interval_stats=composer_data["IntervalStats"]
+            portrait_url=composer_data.get("PortraitURL"),
+            unisons_seconds_freq=stats["Унисоны и секунды"]["Frequency"],
+            unisons_seconds_stddev=stats["Унисоны и секунды"]["StdDev"],
+            thirds_freq=stats["Терции"]["Frequency"],
+            thirds_stddev=stats["Терции"]["StdDev"],
+            fourths_fifths_freq=stats["Кварты и квинты"]["Frequency"],
+            fourths_fifths_stddev=stats["Кварты и квинты"]["StdDev"],
+            sixths_sevenths_freq=stats["Сексты и септимы"]["Frequency"],
+            sixths_sevenths_stddev=stats["Сексты и септимы"]["StdDev"],
+            octaves_freq=stats["Октавы"]["Frequency"],
+            octaves_stddev=stats["Октавы"]["StdDev"],
         )
 
+def random_date():
+    return timezone.now() - timedelta(days=random.randint(0, 365))
 
+def random_timedelta():
+    return timedelta(days=random.randint(1, 30))
 
 def add_analysiss():
     users = User.objects.filter(is_staff=False)
     moderators = User.objects.filter(is_staff=True)
-    composers = Composer.objects.all()
+    composers = list(Composer.objects.all())
 
-    if not users.exists() or not moderators.exists() or not composers.exists():
+    if not users.exists() or not moderators.exists() or not composers:
         print("Недостаточно данных для создания анализов")
         return
 
@@ -158,7 +169,6 @@ def add_analysiss():
 
     add_analysis(1, composers, users[0], moderators)
     add_analysis(2, composers, users[0], moderators)
-
 
 def add_analysis(status, composers, owner, moderators):
     analysis = Analysis(status=status, owner=owner)
@@ -174,31 +184,50 @@ def add_analysis(status, composers, owner, moderators):
 
     analysis.save()
 
-    selected_composers = random.sample(list(composers), min(3, len(composers)))
+    selected_composers = random.sample(composers, min(3, len(composers)))
     for composer in selected_composers:
-        anonymous_stats = []
-        for group in composer.interval_stats:
+
+        orig_stats = [
+            {"IntervalGroup": "Унисоны и секунды", "Frequency": float(composer.unisons_seconds_freq), "StdDev": float(composer.unisons_seconds_stddev)},
+            {"IntervalGroup": "Терции", "Frequency": float(composer.thirds_freq), "StdDev": float(composer.thirds_stddev)},
+            {"IntervalGroup": "Кварты и квинты", "Frequency": float(composer.fourths_fifths_freq), "StdDev": float(composer.fourths_fifths_stddev)},
+            {"IntervalGroup": "Сексты и септимы", "Frequency": float(composer.sixths_sevenths_freq), "StdDev": float(composer.sixths_sevenths_stddev)},
+            {"IntervalGroup": "Октавы", "Frequency": float(composer.octaves_freq), "StdDev": float(composer.octaves_stddev)},
+        ]
+
+        anon_stats = []
+        for group in orig_stats:
             noise = random.uniform(-5.0, 5.0)
-            freq = max(0.0, group["Frequency"] + noise)
-            anonymous_stats.append({
+            freq = max(0.0, min(100.0, group["Frequency"] + noise)) 
+            anon_stats.append({
                 "IntervalGroup": group["IntervalGroup"],
-                "Frequency": round(freq, 1)
+                "Frequency": round(freq, 1),
+                "StdDev": group.get("StdDev", 0.0)  
             })
 
-        coincidence = 0
+        coincidence = 0.0
         if analysis.status == 3:
-            coincidence = calc(composer.interval_stats, anonymous_stats)
+            coincidence = calc(orig_stats, anon_stats)
 
         ca = ComposerAnalysis(
             analysis=analysis,
             composer=composer,
-            anonymous_interval_stats=anonymous_stats,
-            potential_coincidence=int(coincidence)  
+            potential_coincidence=round(coincidence, 2),
+       
+            anon_unisons_seconds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Унисоны и секунды"),
+            anon_unisons_seconds_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Унисоны и секунды"),
+            anon_thirds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Терции"),
+            anon_thirds_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Терции"),
+            anon_fourths_fifths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Кварты и квинты"),
+            anon_fourths_fifths_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Кварты и квинты"),
+            anon_sixths_sevenths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Сексты и септимы"),
+            anon_sixths_sevenths_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Сексты и септимы"),
+            anon_octaves_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Октавы"),
+            anon_octaves_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Октавы"),
         )
         ca.save()
 
 class Command(BaseCommand):
-
     def handle(self, *args, **kwargs):
         add_users()
         add_composers()

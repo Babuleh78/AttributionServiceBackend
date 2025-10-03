@@ -4,24 +4,98 @@ from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
 
 
+class IntervalStatsField(serializers.Field):
+    def to_representation(self, value):
+        return [
+            {
+                "IntervalGroup": "Унисоны и секунды",
+                "Frequency": float(value.unisons_seconds_freq) if value.unisons_seconds_freq is not None else None,
+                "StdDev": float(value.unisons_seconds_stddev) if value.unisons_seconds_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Терции",
+                "Frequency": float(value.thirds_freq) if value.thirds_freq is not None else None,
+                "StdDev": float(value.thirds_stddev) if value.thirds_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Кварты и квинты",
+                "Frequency": float(value.fourths_fifths_freq) if value.fourths_fifths_freq is not None else None,
+                "StdDev": float(value.fourths_fifths_stddev) if value.fourths_fifths_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Сексты и септимы",
+                "Frequency": float(value.sixths_sevenths_freq) if value.sixths_sevenths_freq is not None else None,
+                "StdDev": float(value.sixths_sevenths_stddev) if value.sixths_sevenths_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Октавы",
+                "Frequency": float(value.octaves_freq) if value.octaves_freq is not None else None,
+                "StdDev": float(value.octaves_stddev) if value.octaves_stddev is not None else None,
+            },
+        ]
+
+
+class AnonymousIntervalStatsField(serializers.Field):
+    def to_representation(self, value):
+        return [
+            {
+                "IntervalGroup": "Унисоны и секунды",
+                "Frequency": float(value.anon_unisons_seconds_freq) if value.anon_unisons_seconds_freq is not None else None,
+                "StdDev": float(value.anon_unisons_seconds_stddev) if value.anon_unisons_seconds_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Терции",
+                "Frequency": float(value.anon_thirds_freq) if value.anon_thirds_freq is not None else None,
+                "StdDev": float(value.anon_thirds_stddev) if value.anon_thirds_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Кварты и квинты",
+                "Frequency": float(value.anon_fourths_fifths_freq) if value.anon_fourths_fifths_freq is not None else None,
+                "StdDev": float(value.anon_fourths_fifths_stddev) if value.anon_fourths_fifths_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Сексты и септимы",
+                "Frequency": float(value.anon_sixths_sevenths_freq) if value.anon_sixths_sevenths_freq is not None else None,
+                "StdDev": float(value.anon_sixths_sevenths_stddev) if value.anon_sixths_sevenths_stddev is not None else None,
+            },
+            {
+                "IntervalGroup": "Октавы",
+                "Frequency": float(value.anon_octaves_freq) if value.anon_octaves_freq is not None else None,
+                "StdDev": float(value.anon_octaves_stddev) if value.anon_octaves_stddev is not None else None,
+            },
+        ]
+
+
 class ComposerSerializer(serializers.ModelSerializer):
+    interval_stats = IntervalStatsField(source='*')  
+
     class Meta:
         model = Composer
         fields = [
-            'id', 'name', 'biography',  # вместо 'description'
-            'portrait_url',  # вместо 'image'
+            'id', 'name', 'biography',  
+            'portrait_url',  
             'analyzed_works', 'total_intervals',
             'period', 'polyphony_type', 'interval_stats'
         ]
         read_only_fields = ['status']
 
-    # Убираем to_representation — он не нужен, если portrait_url уже URLField
-    # Если всё же нужно переименовать portrait_url → image в API:
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Опционально: если клиент ожидает поле 'image'
         data['image'] = data.pop('portrait_url', None)
         return data
+
+
+class ComposerAnalysisSerializer(serializers.ModelSerializer):
+    composer = ComposerSerializer(read_only=True)
+    anonymous_interval_stats = AnonymousIntervalStatsField(source='*')
+
+    class Meta:
+        model = ComposerAnalysis
+        fields = [
+            'composer',
+            'anonymous_interval_stats',
+            'potential_coincidence'
+        ]
 
 
 class AnalysisSerializer(serializers.ModelSerializer):
@@ -42,23 +116,11 @@ class AnalysisSerializer(serializers.ModelSerializer):
         return obj.moderator.username if obj.moderator else None
 
 
-class ComposerAnalysisSerializer(serializers.ModelSerializer):
-    composer = ComposerSerializer(read_only=True)
-
-    class Meta:
-        model = ComposerAnalysis
-        fields = [
-            'composer',
-            'anonymous_interval_stats',
-            'potential_coincidence'
-        ]
-
-
 class FullAnalysisSerializer(serializers.ModelSerializer):
     owner_login = serializers.SerializerMethodField()
     moderator_login = serializers.SerializerMethodField()
     composers = ComposerAnalysisSerializer(
-        source='composeranalysis_set',  # ← важно!
+        source='composeranalysis_set',
         many=True,
         read_only=True
     )
@@ -77,7 +139,6 @@ class FullAnalysisSerializer(serializers.ModelSerializer):
         return obj.moderator.username if obj.moderator else None
 
 
-# Остальные сериализаторы без изменений
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
