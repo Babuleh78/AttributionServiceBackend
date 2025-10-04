@@ -18,9 +18,33 @@
 
     <h1 class="page-title">Результаты атрибуции музыкального произведения</h1>
  
+    <div class="order-right">
+            <div class="anonymous-work">
+                <h3>Статистика анонимного произведения</h3>
+                <table class="interval-table">
+                    <thead>
+                        <tr>
+                            <th>Интервал</th>
+                            <th>Частотность (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in anonymousStats %}
+                        <tr>
+                            <td>{{ stat.IntervalGroup }}</td>
+                            <td>{{ stat.Frequency|floatformat:1 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>  
+       
+        <div class="final-total-section">
+    </div>
+    
     <div class="order-form">
         <div class="order-left">
-            <div class="composer-list">
+            <div>
                 {% for candidate in composers %}
                     <div class="composer-item">
                         <img src="{{ candidate.portrait_url }}" alt="{{ candidate.name }}" class="composer-img">
@@ -51,32 +75,9 @@
             </div>
         </div>
 
-        <div class="order-right">
-            <div class="anonymous-work">
-                <h3>Статистика анонимного произведения</h3>
-                <table class="interval-table">
-                    <thead>
-                        <tr>
-                            <th>Интервал</th>
-                            <th>Частотность (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stat in anonymousStats %}
-                        <tr>
-                            <td>{{ stat.IntervalGroup }}</td>
-                            <td>{{ stat.Frequency|floatformat:1 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>  
-       
-        <div class="final-total-section">
-    <div class="actions-row">
-       
-
-        <div class="total-item total-final styled-button delete-link">
+    
+ </div>  
+ <div class="total-item total-final styled-button delete-link">
             <form method="post" action="{% url 'delete_analysis' analysis.id %}" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="delete-btn" style="border: none; background: none; color: white; font-weight: bold; cursor: pointer; padding: 0; margin: 0;">
@@ -84,7 +85,5 @@
                 </button>
             </form>
         </div>
-    </div>
- </div>  
 </body>
 </html>

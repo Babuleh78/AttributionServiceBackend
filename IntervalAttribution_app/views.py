@@ -15,6 +15,67 @@ ANONYMOUS_WORK_STATS = [
     {"IntervalGroup": "Октавы", "Frequency": 10.0},
 ]
 
+def get_composer_interval_stats(composer):
+    """Возвращает статистику интервалов композитора с частотой и СКО"""
+    return [
+        {
+            "IntervalGroup": "Унисоны и секунды",
+            "Frequency": float(composer.unisons_seconds_freq or 0),
+            "StdDev": float(composer.unisons_seconds_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Терции",
+            "Frequency": float(composer.thirds_freq or 0),
+            "StdDev": float(composer.thirds_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Кварты и квинты",
+            "Frequency": float(composer.fourths_fifths_freq or 0),
+            "StdDev": float(composer.fourths_fifths_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Сексты и септимы",
+            "Frequency": float(composer.sixths_sevenths_freq or 0),
+            "StdDev": float(composer.sixths_sevenths_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Октавы",
+            "Frequency": float(composer.octaves_freq or 0),
+            "StdDev": float(composer.octaves_stddev or 0)
+        },
+    ]
+
+
+def get_anonymous_interval_stats(composer_analysis):
+    """Возвращает анонимную статистику с частотой и СКО"""
+    return [
+        {
+            "IntervalGroup": "Унисоны и секунды",
+            "Frequency": float(composer_analysis.anon_unisons_seconds_freq or 0),
+            "StdDev": float(composer_analysis.anon_unisons_seconds_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Терции",
+            "Frequency": float(composer_analysis.anon_thirds_freq or 0),
+            "StdDev": float(composer_analysis.anon_thirds_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Кварты и квинты",
+            "Frequency": float(composer_analysis.anon_fourths_fifths_freq or 0),
+            "StdDev": float(composer_analysis.anon_fourths_fifths_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Сексты и септимы",
+            "Frequency": float(composer_analysis.anon_sixths_sevenths_freq or 0),
+            "StdDev": float(composer_analysis.anon_sixths_sevenths_stddev or 0)
+        },
+        {
+            "IntervalGroup": "Октавы",
+            "Frequency": float(composer_analysis.anon_octaves_freq or 0),
+            "StdDev": float(composer_analysis.anon_octaves_stddev or 0)
+        },
+    ]
+
 def index(request):
     composer_name = request.GET.get("composerName", "")
     composers = Composer.objects.filter(status=1)
@@ -46,12 +107,12 @@ def composer_page(request, composer_id):
          return render(request, "404.html")
     
     context = {
-        "composer": Composer.objects.get(id=composer_id)
+        "composer": Composer.objects.get(id=composer_id),
+        "interval_stats": get_composer_interval_stats(composer)
     }
 
 
     return render(request, "composer_profile.html", context)
-
 
 
 def analysis_page(request, analysis_id):
@@ -70,13 +131,16 @@ def analysis_page(request, analysis_id):
     for item in composer_analysis_items:
         composer = item.composer
 
-        # 🔽 ЗАКОММЕНТИРОВАНО: расчёт отключён
-        # match_percentage = calc(composer.interval_stats, ANONYMOUS_WORK_STATS)
-        # item.potential_coincidence = int(round(match_percentage))
+        # Получаем статистику композитора и анонима
+        composer_stats = get_composer_interval_stats(composer)
+        anonymous_stats = get_anonymous_interval_stats(item)
+
+        # Расчёт совпадения (если нужно — можно включить)
+        # match_percentage = calc(composer_stats, anonymous_stats)
+        # item.potential_coincidence = round(match_percentage, 2)
         # item.save(update_fields=['potential_coincidence'])
 
-        # Используем значение из БД
-        match_percentage = item.potential_coincidence
+        match_percentage = item.potential_coincidence  # берём из БД
 
         composer_data = {
             'name': composer.name,
@@ -84,7 +148,7 @@ def analysis_page(request, analysis_id):
             'period': composer.period,
             'analyzed_works': composer.analyzed_works,
             'total_intervals': composer.total_intervals,
-            'interval_stats': composer.interval_stats,
+            'interval_stats': composer_stats,  # ← теперь это список, а не JSON
             'MatchPercent': match_percentage,
         }
         composers_with_cost.append(composer_data)
@@ -92,7 +156,7 @@ def analysis_page(request, analysis_id):
     context = {
         "analysis": analysis,
         "composers": composers_with_cost,
-        "anonymousStats": ANONYMOUS_WORK_STATS,
+        "anonymousStats": get_anonymous_interval_stats(composer_analysis_items.first()) if composer_analysis_items else ANONYMOUS_WORK_STATS,
     }
 
     return render(request, "attribution_results.html", context)
@@ -113,14 +177,19 @@ def add_composer_to_draft_analysis(request, composer_id):
     if ComposerAnalysis.objects.filter(analysis=draft_analysis, composer=composer).exists():
         return redirect(redirect_url)
 
-    random_match = random.randint(80, 100)
-    print(random_match)
+    anon_stats = ANONYMOUS_WORK_STATS 
 
+    # Создаём объект с заполнением полей
     item = ComposerAnalysis(
         analysis=draft_analysis,
         composer=composer,
-        anonymous_interval_stats=ANONYMOUS_WORK_STATS,
-        potential_coincidence=random_match
+        potential_coincidence=random.randint(80, 100),
+        # Заполняем анонимные поля
+        anon_unisons_seconds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Унисоны и секунды"),
+        anon_thirds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Терции"),
+        anon_fourths_fifths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Кварты и квинты"),
+        anon_sixths_sevenths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Сексты и септимы"),
+        anon_octaves_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Октавы"),
     )
     item.save()
 

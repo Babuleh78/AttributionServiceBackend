@@ -36,7 +36,7 @@
                         </tr>
                     </thead>
                    <tbody>
-                        {% for stat in composer.interval_stats %}
+                        {% for stat in interval_stats %}
                         <tr>
                             <td>{{ stat.IntervalGroup }}</td>
                             <td>{{ stat.Frequency|floatformat:1 }}</td>
