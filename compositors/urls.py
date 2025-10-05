@@ -1,7 +1,13 @@
 from django.urls import path
 from . import views
 
+
+
+
 urlpatterns = [
+    
+
+
     path('composers/', views.ComposerListView.as_view(), name='composer-list'),
     path('composers/<int:pk>/', views.ComposerDetailView.as_view(), name='composer-detail'),
     path('composers/<int:pk>/image/', views.ComposerImageUploadView.as_view(), name='composer-image-upload'),
@@ -25,4 +31,5 @@ urlpatterns = [
     path('attributionUser/login/', views.UserLoginView.as_view(), name='user-login'),
     path('attributionUser/logout/', views.UserLogoutView.as_view(), name='user-logout'),
     path('attributionUser/profile/', views.UserProfileView.as_view(), name='user-profile'),
+
 ]

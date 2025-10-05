@@ -8,13 +8,15 @@ from .models import Composer, Analysis, ComposerAnalysis
 from .serializers import (
     ComposerSerializer,
     AnalysisSerializer,
+    UserRegistrationSerializer,
+    ComposerAnalysisSerializer,
     UserLoginSerializer,
-    UserProfileSerializer,
-    UserRegistrationSerializer
+    UserProfileSerializer
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from .utils import upload_image_to_minio, delete_image_from_minio
+from drf_yasg.utils import swagger_auto_schema
 
 
 def get_creator():
@@ -30,7 +32,8 @@ class ComposerListView(APIView):
             composers = composers.filter(name__icontains=name)
         serializer = ComposerSerializer(composers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    
+    @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request):
         data = request.data.copy()
         data['status'] = 1
@@ -47,6 +50,7 @@ class ComposerDetailView(APIView):
         serializer = ComposerSerializer(composer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(request_body=ComposerSerializer)
     def put(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
         data = request.data.copy()
@@ -72,6 +76,7 @@ class ComposerDetailView(APIView):
 class ComposerImageUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request, pk):
         creator = get_creator()
         if request.user != creator:
@@ -94,7 +99,8 @@ class ComposerImageUploadView(APIView):
 
 class AddComposerToDraftView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
+    @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request, pk):
         creator = get_creator()
         if request.user != creator:
@@ -177,6 +183,7 @@ class AnalysisDetailView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         if analysis.status == 5:
@@ -211,6 +218,7 @@ class AnalysisDetailView(APIView):
 class AnalysisFormulateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         creator = get_creator()
@@ -236,6 +244,7 @@ class AnalysisFormulateView(APIView):
 class AnalysisCompleteOrRejectView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         creator = get_creator()
@@ -295,6 +304,7 @@ class CartIconView(APIView):
 class ComposerAnalysisUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(request_body=ComposerAnalysisSerializer)
     def put(self, request, analysis_id, composer_id):
         analysis = get_object_or_404(Analysis, pk=analysis_id)
         creator = get_creator()
@@ -349,6 +359,8 @@ class ComposerAnalysisDeleteView(APIView):
 
 class UserRegisterView(APIView):
     permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=UserRegistrationSerializer)
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -364,6 +376,8 @@ class UserRegisterView(APIView):
 
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
+
+    @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -379,6 +393,8 @@ class UserLoginView(APIView):
 
 class UserLogoutView(APIView):
     permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(self, request):
         request.user.auth_token.delete()
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
