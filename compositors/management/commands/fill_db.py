@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from compositors.models import Composer, Analysis, ComposerAnalysis
 from compositors.calc import calc
 from django.utils import timezone
@@ -96,31 +96,36 @@ composerProfiles = [
     },
 ]
 
+
+User = get_user_model()
 def get_interval_dict(interval_stats):
     """Преобразует список IntervalStats в словарь по группам"""
     return {item["IntervalGroup"]: item for item in interval_stats}
 
 def add_users():
-    if not User.objects.filter(username="user").exists():
-        User.objects.create_user("user", "user@user.com", "1234", first_name="user", last_name="user")
-    if not User.objects.filter(username="root").exists():
-        User.objects.create_superuser("root", "root@root.com", "1234", first_name="root", last_name="root")
-    if not User.objects.filter(username="creator").exists():
+    # Создаём пользователей по email
+    if not User.objects.filter(email="user@user.com").exists():
+        User.objects.create_user(email="user@user.com", password="1234")
+
+    if not User.objects.filter(email="root@root.com").exists():
+        User.objects.create_superuser(email="root@root.com", password="1234")
+
+    if not User.objects.filter(email="creator@example.com").exists():
         User.objects.create_user(
-            username="creator",
             email="creator@example.com",
             password="1234",
-            first_name="Creator",
-            last_name="User",
             is_staff=True,
         )
+
     for i in range(1, 10):
-        if not User.objects.filter(username=f"user{i}").exists():
-            User.objects.create_user(f"user{i}", f"user{i}@user.com", "1234")
-        if not User.objects.filter(username=f"root{i}").exists():
-            User.objects.create_superuser(f"root{i}", f"root{i}@root.com", "1234")
+        if not User.objects.filter(email=f"user{i}@user.com").exists():
+            User.objects.create_user(email=f"user{i}@user.com", password="1234")
+        if not User.objects.filter(email=f"root{i}@root.com").exists():
+            User.objects.create_superuser(email=f"root{i}@root.com", password="1234")
 
 def add_composers():
+
+    
     for composer_data in composerProfiles:
         if Composer.objects.filter(name=composer_data["Name"]).exists():
             continue

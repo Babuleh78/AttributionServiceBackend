@@ -73,10 +73,12 @@ services:
         condition: service_healthy
     command: >
       bash -c "
-        python manage.py makemigrations &&
+        
         python manage.py migrate --noinput &&
         python manage.py flush --no-input &&
-        python manage.py fill_db
+        python manage.py fill_db &&
+        
+        python manage.py createsuperuser
       "
 
 volumes:

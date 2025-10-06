@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.contrib.auth.models import User
+from .models import CustomUser as User ## Кастомный пользователь
 from .models import Composer, Analysis, ComposerAnalysis
 from .serializers import (
     ComposerSerializer,
@@ -20,8 +20,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 
 def get_creator():
-    return User.objects.get(username="creator")
-
+    return User.objects.get(email="creator@example.com")  
 
 
 class ComposerListView(APIView):

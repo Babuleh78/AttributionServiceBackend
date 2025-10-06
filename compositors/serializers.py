@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import Composer, Analysis, ComposerAnalysis, User  
+from .models import Composer, Analysis, ComposerAnalysis
+from .models import CustomUser 
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
-
+from django.contrib.auth.password_validation import validate_password
 
 class IntervalStatsField(serializers.Field):
     def to_representation(self, value):
@@ -140,37 +141,65 @@ class FullAnalysisSerializer(serializers.ModelSerializer):
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    """
+    Сериализатор для регистрации нового пользователя.
+    """
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'first_name', 'last_name']
+        model = CustomUser
+        fields = ('email', 'password', 'password2', 'is_staff', 'is_superuser')
+        extra_kwargs = {
+            'is_staff': {'default': False},
+            'is_superuser': {'default': False},
+        }
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "Пароли не совпадают."})
+        return attrs
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
+        validated_data.pop('password2')
+        # Используем create_user из CustomUserManager для хэширования пароля
+        user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', '')
+            is_staff=validated_data.get('is_staff', False),
+            is_superuser=validated_data.get('is_superuser', False),
         )
         return user
 
 
 class UserLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    """
+    Сериализатор для входа пользователя.
+    """
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
-    def validate(self, data):
-        user = authenticate(**data)
-        if user is None:
-            raise AuthenticationFailed("Invalid credentials")
-        return user
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if email and password:
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
+            if not user:
+                raise serializers.ValidationError('Неверные учетные данные.')
+        else:
+            raise serializers.ValidationError('Должны быть указаны "email" и "password".')
+
+        attrs['user'] = user
+        return attrs
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для профиля пользователя (чтение и частичное обновление).
+    Пароль не включается.
+    """
     class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
-        read_only_fields = ['username']
-        
+        model = CustomUser
+        fields = ('email', 'is_staff', 'is_superuser')
+        read_only_fields = ('email', 'is_staff', 'is_superuser')
