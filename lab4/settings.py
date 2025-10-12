@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,13 +27,19 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_SECURE = False 
+SESSION_COOKIE_SAMESITE = 'Lax'  
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 1209600  
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000', 'http://localhost:8000/swagger/']
 # Application definition
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-    ],
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ]
 }
 
 INSTALLED_APPS = [
@@ -46,7 +52,6 @@ INSTALLED_APPS = [
 
     # DRF
     'rest_framework',
-    'rest_framework.authtoken',
     'drf_yasg',
     # Наше приложение
     'compositors',
@@ -55,7 +60,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -144,3 +148,6 @@ AWS_S3_ENDPOINT_URL = 'localhost:9000'
 MINIO_USE_SSL = False
 
 AUTH_USER_MODEL = 'compositors.CustomUser'
+
+REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')  
+REDIS_PORT = os.environ.get('REDIS_PORT', 6379)

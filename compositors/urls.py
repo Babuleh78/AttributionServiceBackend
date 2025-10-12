@@ -1,7 +1,9 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
+from rest_framework.routers import DefaultRouter
 
-
+router = DefaultRouter()
+router.register(r'user', views.UserViewSet, basename='user')
 
 
 urlpatterns = [
@@ -27,9 +29,10 @@ urlpatterns = [
     path('analyses/<int:analysis_id>/composer/<int:composer_id>/delete/', views.ComposerAnalysisDeleteView.as_view(), name='composer-analysis-delete'),
 
     # Пользователь
-    path('attributionUser/register/', views.UserRegisterView.as_view(), name='user-register'),
-    path('attributionUser/login/', views.UserLoginView.as_view(), name='user-login'),
-    path('attributionUser/logout/', views.UserLogoutView.as_view(), name='user-logout'),
-    path('attributionUser/profile/', views.UserProfileView.as_view(), name='user-profile'),
+    path('', include(router.urls)),
+    # path('attributionUser/register/', views.UserRegisterView.as_view(), name='user-register'),
+    # path('attributionUser/login/',  views.login_view, name='login'),
+    # path('attributionUser/logout/', views.logout_view, name='user-logout'),
+    # path('attributionUser/profile/', views.UserProfileView.as_view(), name='user-profile'),
 
 ]

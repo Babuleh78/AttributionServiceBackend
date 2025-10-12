@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Composer, Analysis, ComposerAnalysis
 from .models import CustomUser 
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import AuthenticationFailed
+from collections import OrderedDict
 from django.contrib.auth.password_validation import validate_password
 
 class IntervalStatsField(serializers.Field):
@@ -80,11 +80,16 @@ class ComposerSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['status']
 
+    def get_fields(self):
+        fields = super().get_fields()
+        for field in fields.values():
+            field.required = False
+        return fields
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['image'] = data.pop('portrait_url', None)
         return data
-
 
 class ComposerAnalysisSerializer(serializers.ModelSerializer):
     composer = ComposerSerializer(read_only=True)
@@ -110,34 +115,19 @@ class AnalysisSerializer(serializers.ModelSerializer):
             'owner_login', 'moderator_login'
         ]
 
-    def get_owner_login(self, obj):
-        return obj.owner.username if obj.owner else None
-
-    def get_moderator_login(self, obj):
-        return obj.moderator.username if obj.moderator else None
-
-
-class FullAnalysisSerializer(serializers.ModelSerializer):
-    owner_login = serializers.SerializerMethodField()
-    moderator_login = serializers.SerializerMethodField()
-    composers = ComposerAnalysisSerializer(
-        source='composeranalysis_set',
-        many=True,
-        read_only=True
-    )
-
-    class Meta:
-        model = Analysis
-        fields = [
-            'id', 'status', 'date_created', 'date_formation', 'date_complete',
-            'owner_login', 'moderator_login', 'composers'
-        ]
+    def get_fields(self):
+        fields = super().get_fields()
+        for field in fields.values():
+            field.required = False
+        return fields
 
     def get_owner_login(self, obj):
-        return obj.owner.username if obj.owner else None
+        return obj.owner.email if obj.owner else None
 
     def get_moderator_login(self, obj):
-        return obj.moderator.username if obj.moderator else None
+        return obj.moderator.email if obj.moderator else None
+
+
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -195,11 +185,13 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для профиля пользователя (чтение и частичное обновление).
-    Пароль не включается.
-    """
     class Meta:
         model = CustomUser
         fields = ('email', 'is_staff', 'is_superuser')
-        read_only_fields = ('email', 'is_staff', 'is_superuser')
+        read_only_fields = ('email',)
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for field in fields.values():
+            field.required = False
+        return fields

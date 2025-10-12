@@ -103,7 +103,6 @@ def get_interval_dict(interval_stats):
     return {item["IntervalGroup"]: item for item in interval_stats}
 
 def add_users():
-    # Создаём пользователей по email
     if not User.objects.filter(email="user@user.com").exists():
         User.objects.create_user(email="user@user.com", password="1234")
 

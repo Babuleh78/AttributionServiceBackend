@@ -1,9 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import viewsets
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from .models import CustomUser as User ## Кастомный пользователь
+from .models import CustomUser  ## Кастомный пользователь
 from .models import Composer, Analysis, ComposerAnalysis
 from .serializers import (
     ComposerSerializer,
@@ -14,14 +15,63 @@ from .serializers import (
     UserProfileSerializer
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.authtoken.models import Token
 from .utils import upload_image_to_minio, delete_image_from_minio
 from drf_yasg.utils import swagger_auto_schema
+from .permissions import IsManager, IsAdmin
+from django.contrib.auth import authenticate, login, logout
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponse
+from rest_framework.permissions import AllowAny
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import authentication_classes
+from django.conf import settings
+import redis
+import uuid
 
+
+session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
 def get_creator():
-    return User.objects.get(email="creator@example.com")  
+    return CustomUser.objects.get(email="creator@example.com")  
 
+@permission_classes([AllowAny])
+@authentication_classes([])
+@csrf_exempt
+@swagger_auto_schema(method='post', request_body=UserProfileSerializer)
+@api_view(['POST'])
+def login_view(request):
+    username = request.data.get("email")
+    password = request.data.get("password")
+    user = authenticate(request, email=username, password=password)
+    
+    if user is not None:
+        # Конвертируем UUID в строку
+        random_key = str(uuid.uuid4())  # Добавьте str() здесь
+        
+        try:
+            session_storage.set(random_key, username, ex=86400)  # TTL 24 часа
+
+            response = HttpResponse("{'status': 'ok'}")
+            response.set_cookie("session_id", random_key, max_age=86400)
+            return response
+            
+        except redis.RedisError as e:
+            print(f"Redis error: {e}")
+            return HttpResponse("{'status': 'error', 'error': 'session storage error'}", status=500)
+            
+    else:
+        return HttpResponse("{'status': 'error', 'error': 'login failed'}", status=401)
+    
+@swagger_auto_schema(method='post', operation_description="Выход из системы")
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    logout(request)
+    return Response({'status': 'Success', 'message': 'Logged out successfully'})
 
 class ComposerListView(APIView):
     def get(self, request):
@@ -32,6 +82,7 @@ class ComposerListView(APIView):
         serializer = ComposerSerializer(composers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request):
         data = request.data.copy()
@@ -49,6 +100,7 @@ class ComposerDetailView(APIView):
         serializer = ComposerSerializer(composer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    permission_classes = [IsAuthenticated]
     @swagger_auto_schema(request_body=ComposerSerializer)
     def put(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
@@ -60,6 +112,7 @@ class ComposerDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    permission_classes = [IsAuthenticated]
     def delete(self, request, pk):
         composer = get_object_or_404(Composer, pk=pk, status=1)
         creator = get_creator()
@@ -73,8 +126,8 @@ class ComposerDetailView(APIView):
 
 
 class ComposerImageUploadView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
     @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request, pk):
         creator = get_creator()
@@ -119,7 +172,6 @@ class AddComposerToDraftView(APIView):
         ComposerAnalysis.objects.create(
             analysis=draft_analysis,
             composer=composer,
-            anonymous_interval_stats=[],
             potential_coincidence=0
         )
 
@@ -131,6 +183,7 @@ class AddComposerToDraftView(APIView):
 
 
 class AnalysisListView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request):
         analyses = Analysis.objects.exclude(status=5)
 
@@ -150,6 +203,7 @@ class AnalysisListView(APIView):
 
 
 class AnalysisDetailView(APIView):
+    permission_classes = [IsAdmin]
     def get(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         if analysis.status == 5:
@@ -215,8 +269,7 @@ class AnalysisDetailView(APIView):
 
 
 class AnalysisFormulateView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [IsAuthenticated, IsManager]
     @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
@@ -241,14 +294,13 @@ class AnalysisFormulateView(APIView):
 
 
 class AnalysisCompleteOrRejectView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsManager]
 
     @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
         creator = get_creator()
 
-        # Creator может завершать/отклонять даже без is_staff!
         if not (request.user.is_staff or request.user == creator):
             return Response({"error": "Only moderators or creator can complete/reject"}, status=status.HTTP_403_FORBIDDEN)
         if analysis.status != 2:
@@ -356,58 +408,20 @@ class ComposerAnalysisDeleteView(APIView):
         return Response({"message": "Composer removed from analysis"}, status=status.HTTP_200_OK)
 
 
-class UserRegisterView(APIView):
-    permission_classes = [AllowAny]
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
 
-    @swagger_auto_schema(request_body=UserRegistrationSerializer)
-    def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
-                "message": "User registered successfully",
-                "user": UserProfileSerializer(user).data,
-                "token": token.key
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserRegistrationSerializer
+        return UserProfileSerializer
 
-
-class UserLoginView(APIView):
-    permission_classes = [AllowAny]
-
-    @swagger_auto_schema(request_body=UserLoginSerializer)
-    def post(self, request):
-        serializer = UserLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
-                "message": "Login successful",
-                "token": token.key,
-                "user": UserProfileSerializer(user).data
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        elif self.action == 'list':
+            return [IsManager(), IsAdmin()]
+        else:
+            return [IsAdmin()]
 
 
-class UserLogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @swagger_auto_schema(request_body=UserLoginSerializer)
-    def post(self, request):
-        request.user.auth_token.delete()
-        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
-
-
-class UserProfileView(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        serializer = UserProfileSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def put(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

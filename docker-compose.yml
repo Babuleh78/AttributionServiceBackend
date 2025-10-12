@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -12,6 +14,17 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   minio:
@@ -55,10 +68,14 @@ services:
       MINIO_HOST: minio:9000
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   migration:
@@ -68,17 +85,18 @@ services:
       MINIO_HOST: minio:9000
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     command: >
       bash -c "
-        
         python manage.py migrate --noinput &&
-        python manage.py flush --no-input &&
         python manage.py fill_db &&
-        
-        python manage.py createsuperuser
+        python manage.py create_superuser
       "
 
 volumes:
