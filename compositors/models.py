@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-
+import decimal
 
 
 class CustomUserManager(UserManager):
@@ -29,6 +29,7 @@ class CustomUserManager(UserManager):
             raise ValueError(_('Superuser must have is_superuser=True.'))
 
         return self.create_user(email, password, **extra_fields)
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('email address'), unique=True)
@@ -90,8 +91,8 @@ class Composer(models.Model):
 
 class Analysis(models.Model):
     STATUS_CHOICES = (
-        (1, 'Введён'),
-        (2, 'В работе'),
+        (1, 'Черновик'),
+        (2, 'Сформирован'),
         (3, 'Завершен'),
         (4, 'Отклонен'),
         (5, 'Удален')
@@ -135,8 +136,8 @@ class Analysis(models.Model):
     def get_composers(self):
         composers = []
         for item in ComposerAnalysis.objects.filter(analysis=self):
-           
-            composer_data = {**model_to_dict(item.composer)}
+            composer_dict = model_to_dict(item.composer)
+            composer_data = convert_decimals(composer_dict)
             composers.append(composer_data)
         return composers
 
@@ -179,3 +180,13 @@ class ComposerAnalysis(models.Model):
         unique_together = ('composer', 'analysis') 
 
 
+def convert_decimals(obj):
+    """Рекурсивно преобразует Decimal в float для JSON-сериализации."""
+    if isinstance(obj, dict):
+        return {key: convert_decimals(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_decimals(item) for item in obj]
+    elif isinstance(obj, decimal.Decimal):
+        return float(obj)
+    else:
+        return obj

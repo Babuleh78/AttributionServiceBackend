@@ -3,7 +3,7 @@ from . import views
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-router.register(r'user', views.UserViewSet, basename='user')
+router.register(r'attributionUser', views.UserViewSet, basename='user')
 
 
 urlpatterns = [
@@ -16,17 +16,17 @@ urlpatterns = [
     path('composers/<int:pk>/add-to-draft/', views.AddComposerToDraftView.as_view(), name='composer-add-to-draft'),
     
     # Анализы
-    path('analyses/', views.AnalysisListView.as_view(), name='analysis-list'),
-    path('analyses/<int:pk>/', views.AnalysisDetailView.as_view(), name='analysis-detail'),
-    path('analyses/<int:pk>/formulate/', views.AnalysisFormulateView.as_view(), name='analysis-formulate'),
-    path('analyses/<int:pk>/complete-or-reject/', views.AnalysisCompleteOrRejectView.as_view(), name='analysis-complete-or-reject'),
+    path('attributionAnalyses/', views.AnalysisListView.as_view(), name='analysis-list'),
+    path('attributionAnalyses/<int:pk>/', views.AnalysisDetailView.as_view(), name='analysis-detail'),
+    path('attributionAnalyses/<int:pk>/formulateAnalysis/', views.AnalysisFormulateView.as_view(), name='analysis-formulate'),
+    path('attributionAnalyses/<int:pk>/complete-or-reject/', views.AnalysisCompleteOrRejectView.as_view(), name='analysis-complete-or-reject'),
     
     # Корзина
-    path('analyses/attributionDraft/', views.CartIconView.as_view(), name='cart-icon'),
+    path('attributionAnalyses/attributionDraft/', views.CartIconView.as_view(), name='cart-icon'),
 
-    # М-М: управление связью композитор-анализ
-    path('analyses/<int:analysis_id>/composer/<int:composer_id>/',  views.ComposerAnalysisUpdateView.as_view(), name='composer-analysis-update'),
-    path('analyses/<int:analysis_id>/composer/<int:composer_id>/delete/', views.ComposerAnalysisDeleteView.as_view(), name='composer-analysis-delete'),
+    # М-М:  
+    path('attributionAnalyses/<int:analysis_id>/composer/<int:composer_id>/',  views.ComposerAnalysisUpdateView.as_view(), name='composer-analysis-update'),
+    path('attributionAnalyses/<int:analysis_id>/composer/<int:composer_id>/delete/', views.ComposerAnalysisDeleteView.as_view(), name='composer-analysis-delete'),
 
     # Пользователь
     path('', include(router.urls)),

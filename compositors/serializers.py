@@ -107,11 +107,13 @@ class ComposerAnalysisSerializer(serializers.ModelSerializer):
 class AnalysisSerializer(serializers.ModelSerializer):
     owner_login = serializers.SerializerMethodField()
     moderator_login = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()  
 
     class Meta:
         model = Analysis
         fields = [
-            'id', 'status', 'date_created', 'date_formation', 'date_complete',
+            'id', 'status',  # теперь status — текстовое значение
+            'date_created', 'date_formation', 'date_complete',
             'owner_login', 'moderator_login'
         ]
 
@@ -127,6 +129,9 @@ class AnalysisSerializer(serializers.ModelSerializer):
     def get_moderator_login(self, obj):
         return obj.moderator.email if obj.moderator else None
 
+    def get_status(self, obj):
+        return obj.get_status_display()  
+
 
 
 
@@ -135,24 +140,19 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     Сериализатор для регистрации нового пользователя.
     """
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'password', 'password2', 'is_staff', 'is_superuser')
+        fields = ('email', 'password')
         extra_kwargs = {
             'is_staff': {'default': False},
             'is_superuser': {'default': False},
         }
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Пароли не совпадают."})
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2')
-        # Используем create_user из CustomUserManager для хэширования пароля
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
