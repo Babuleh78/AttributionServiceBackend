@@ -35,93 +35,57 @@ from django.contrib.auth import get_user_model
 import ast
 session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
 
-# class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
-
-#     def has_object_permission(self, request, view, obj):
-#         if obj.owner == request.user:
-#             return request.method in permissions.SAFE_METHODS
-        
-#         if request.user.is_superuser or (hasattr(obj, 'moderator') and obj.moderator == request.user):
-#             return True
-
-#         return False
-    
 class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
+    """
+    Разрешает доступ, если:
+    - Пользователь — владелец объекта и делает SAFE-запрос (GET, HEAD, OPTIONS), ИЛИ
+    - Пользователь — суперпользователь, ИЛИ
+    - Пользователь — модератор объекта (если поле moderator существует).
+    """
 
     def has_object_permission(self, request, view, obj):
-        ssid = request.COOKIES.get("sessionid")
-
-        print(ssid)
-
-        ssid2 = request.COOKIES.get("REDISsession")
-        print(ssid2)
+        ssid = request.COOKIES.get("session_id")
         if not ssid:
             return False
 
-        # 2. Ищем сессию в Redis
         try:
             session_data_bytes = session_storage.get(ssid)
             if not session_data_bytes:
                 return False
-
-            # 3. Десериализуем данные сессии
-            # Ты сохраняешь как str(dict), поэтому используем ast.literal_eval
             session_data = ast.literal_eval(session_data_bytes.decode('utf-8'))
             user_id = session_data.get('user_id')
             is_superuser = session_data.get('is_superuser', False)
 
             if not user_id:
                 return False
-
-            # 4. Получаем объект пользователя из БД
             try:
                 user = User.objects.get(id=user_id)
             except User.DoesNotExist:
                 return False
 
         except Exception:
-            # Любая ошибка (Redis недоступен, парсинг сломался и т.п.) → отказ в доступе
             return False
-
-        # 5. Применяем бизнес-логику доступа
-        # Владелец может только читать (SAFE_METHODS)
         if hasattr(obj, 'owner') and obj.owner == user:
             return request.method in permissions.SAFE_METHODS
-
-        # Суперпользователь или модератор — полный доступ
         if is_superuser:
             return True
-
         if hasattr(obj, 'moderator') and obj.moderator == user:
             return True
-
         return False
+
     
 User = get_user_model()
 
 def get_user_from_session(request):
-    ssid = request.COOKIES.get("session_id")
-    if not ssid:
-        return None, Response({"error": "session_id cookie missing"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    try:
-        session_data_str = session_storage.get(ssid)
-        if not session_data_str:
-            return None, Response({"error": "Invalid or expired session"}, status=status.HTTP_401_UNAUTHORIZED)
+    if not request.user.is_authenticated:
+        return None, Response(
+            {"error": "User not authenticated"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
-        session_data = ast.literal_eval(session_data_str.decode('utf-8'))
-        user_id = session_data.get('user_id')
-        if not user_id:
-            return None, Response({"error": "User ID not found in session"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        try:
-            user = User.objects.get(id=user_id)
-            return user, None
-        except User.DoesNotExist:
-            return None, Response({"error": "User not found"}, status=status.HTTP_401_UNAUTHORIZED)
-
-    except Exception as e:
-        return None, Response({"error": f"Session error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return request.user, None
+    
 
 @permission_classes([AllowAny])
 @authentication_classes([])
@@ -155,11 +119,11 @@ def login_view(request):
             
             response = JsonResponse(response_data)
             response.set_cookie(
-                key='REDISsession',
+                key='session_id',
                 value=random_key,
                 httponly=True,
-                secure=False,  
-                samesite='Lax'
+                samesite='None',  
+                path='/'      
             )
                         
             return response
@@ -192,6 +156,12 @@ def logout_view(request):
 
 class ComposerListView(APIView):
     def get(self, request):
+        try:
+            ssid = request.COOKIES["session_id"]
+            print(ssid)
+        except:
+            print("failed")
+       
         composers = Composer.objects.filter(status=1)
         name = request.query_params.get('name', None)
         if name:
