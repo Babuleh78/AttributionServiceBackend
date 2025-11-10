@@ -28,6 +28,7 @@ composerProfiles = [
             {"IntervalGroup": "Сексты и септимы", "Frequency": 12.8, "StdDev": 1.7},
             {"IntervalGroup": "Октавы", "Frequency": 11.1, "StdDev": 1.5},
         ],
+        "PortraitURL": "http://localhost:9000/images/richter-6x9.jpg",
         "Biography": "Макс Рихтер — британский композитор-постминималист немецкого происхождения (род. 1966). Классически образованный выпускник Королевской академии музыки, он стал одним из самых влиятельных современных авторов, работая на стыке академической традиции и электронной музыки.",
     },
     {
@@ -44,6 +45,7 @@ composerProfiles = [
             {"IntervalGroup": "Сексты и септимы", "Frequency": 15.3, "StdDev": 2.1},
             {"IntervalGroup": "Октавы", "Frequency": 7.4, "StdDev": 1.8},
         ],
+        "PortraitURL": "http://localhost:9000/images/bethoven.jpg",
         "Biography": "Великий немецкий композитор, пианист и дирижёр. Последний представитель венской классической школы. ключевая фигура западной классической музыки в период между классицизмом и романтизмом.",
     },
     {
@@ -53,6 +55,7 @@ composerProfiles = [
         "TotalIntervals": 215670,
         "Period": "1981 - настоящее время",
         "PolyphonyType": "Остинато",
+        "PortraitURL": "http://localhost:9000/images/dze.jpg",
         "IntervalStats": [
             {"IntervalGroup": "Унисоны и секунды", "Frequency": 30.2, "StdDev": 2.1},
             {"IntervalGroup": "Терции", "Frequency": 25.6, "StdDev": 1.9},
@@ -69,6 +72,7 @@ composerProfiles = [
         "TotalIntervals": 172890,
         "Period": "1925-2016",
         "PolyphonyType": "Серийный контрапункт",
+         "PortraitURL": "http://localhost:9000/images/PierB.jpg",
         "IntervalStats": [
             {"IntervalGroup": "Унисоны и секунды", "Frequency": 35.8, "StdDev": 4.2},
             {"IntervalGroup": "Терции", "Frequency": 18.9, "StdDev": 3.1},
@@ -85,6 +89,7 @@ composerProfiles = [
         "TotalIntervals": 245320,
         "Period": "1899-1974",
         "PolyphonyType": "Джазовая гетерофония",
+        "PortraitURL": "http://localhost:9000/images/DuckE.jpg",
         "IntervalStats": [
             {"IntervalGroup": "Унисоны и секунды", "Frequency": 27.6, "StdDev": 2.3},
             {"IntervalGroup": "Терции", "Frequency": 29.4, "StdDev": 2.1},
@@ -93,6 +98,24 @@ composerProfiles = [
             {"IntervalGroup": "Октавы", "Frequency": 7.0, "StdDev": 1.2},
         ],
         "Biography": "Американский джазовый композитор, пианист и руководитель оркестра. Один из наиболее влиятельных фигур в истории джаза. Создал уникальный оркестровый звук и написал более 1000 произведений.",
+    },
+     {
+        "ID": 6,
+        "Name": "Филип Гласс",
+        "AnalyzedWorks": 22,
+        "AnalysisCost": 409,
+        "TotalIntervals": 198560,
+        "PortraitURL": "http://localhost:9000/images/PhilG.jpg",
+        "Period": "1937 - настоящее время",
+        "PolyphonyType": "Минималистичная гетерофония",
+        "IntervalStats": [
+            {"IntervalGroup": "Унисоны и секунды", "Frequency": 33.5, "StdDev": 1.8},
+            {"IntervalGroup": "Терции", "Frequency": 22.3, "StdDev": 1.6},
+            {"IntervalGroup": "Кварты и квинты", "Frequency": 21.7, "StdDev": 1.7},
+            {"IntervalGroup": "Сексты и септимы", "Frequency": 13.9, "StdDev": 1.4},
+            {"IntervalGroup": "Октавы", "Frequency": 8.6, "StdDev": 1.2},
+        ],
+        "Biography": "Американский композитор-минималист. Один из наиболее влиятельных композиторов конца XX - начала XXI века. Известен своими повторяющимися структурами и гипнотическими музыкальными паттернами.",
     },
 ]
 

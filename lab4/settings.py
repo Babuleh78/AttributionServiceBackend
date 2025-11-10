@@ -25,8 +25,26 @@ SECRET_KEY = 'django-insecure-1t5@t0bddf)4r9$tz=7n1j^&=lwrbw9p@w1yorlviy^2kga8tk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['192.168.1.67', 'localhost', '127.0.0.1', '0.0.0.0']
 
+CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://192.168.1.67:3000",
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "https://tauri.localhost",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://192.168.1.67:3000",
+    "http://192.168.1.67:8000",
+    "tauri://localhost",
+]
 SESSION_COOKIE_NAME = 'sessionid'
 SESSION_COOKIE_SECURE = False 
 SESSION_COOKIE_SAMESITE = 'Lax'  
@@ -43,6 +61,7 @@ REST_FRAMEWORK = {
 }
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -57,6 +76,7 @@ INSTALLED_APPS = [
     'compositors',
 ]
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

@@ -33,7 +33,10 @@ from django.http import JsonResponse
 from rest_framework import permissions
 from django.contrib.auth import get_user_model
 import ast
+
+
 session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+
 
 class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
     """
@@ -169,7 +172,7 @@ class ComposerListView(APIView):
         serializer = ComposerSerializer(composers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    permission_classes = [IsAuthenticated]
+    @permission_classes([IsAuthenticated])
     @swagger_auto_schema(request_body=ComposerSerializer)
     def post(self, request):
         data = request.data.copy()
@@ -183,15 +186,15 @@ class ComposerListView(APIView):
 
 class ComposerDetailView(APIView):
     def get(self, request, pk):
-        user, error_response = get_user_from_session(request)
-        if error_response:
-            return error_response
+        # user, error_response = get_user_from_session(request)
+        # if error_response:
+        #     return error_response
         
         composer = get_object_or_404(Composer, pk=pk, status=1)
         serializer = ComposerSerializer(composer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    permission_classes = [IsManager]
+    @permission_classes([IsAuthenticated])
     @swagger_auto_schema(request_body=ComposerSerializer)
     def put(self, request, pk):
 
@@ -208,7 +211,8 @@ class ComposerDetailView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    permission_classes = [IsManager]
+    @permission_classes([IsAuthenticated])
+    @swagger_auto_schema(request_body=ComposerSerializer)
     def delete(self, request, pk):
 
         user, error_response = get_user_from_session(request)

@@ -9,7 +9,6 @@ router.register(r'attributionUser', views.UserViewSet, basename='user')
 urlpatterns = [
     
 
-
     path('composers/', views.ComposerListView.as_view(), name='composer-list'),
     path('composers/<int:pk>/', views.ComposerDetailView.as_view(), name='composer-detail'),
     path('composers/<int:pk>/image/', views.ComposerImageUploadView.as_view(), name='composer-image-upload'),

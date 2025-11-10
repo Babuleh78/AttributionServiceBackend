@@ -5,3 +5,4 @@ minio
 Faker
 drf-yasg
 redis
+django-cors-headers>=4.0.0
