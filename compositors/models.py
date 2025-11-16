@@ -102,6 +102,7 @@ class Analysis(models.Model):
     date_created = models.DateTimeField(verbose_name="Дата создания", default=timezone.now)
     date_formation = models.DateTimeField(verbose_name="Дата формирования", blank=True, null=True)
     date_complete = models.DateTimeField(verbose_name="Дата завершения", blank=True, null=True)
+    musicologist_name = models.CharField(_('musicologist_name'), max_length=150, null=True)
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,

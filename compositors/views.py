@@ -48,8 +48,7 @@ class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         ssid = request.COOKIES.get("session_id")
-        if not ssid:
-            return False
+        
 
         try:
             session_data_bytes = session_storage.get(ssid)

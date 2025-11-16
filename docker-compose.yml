@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: postgres
+    ports:
+      - "5432:5432"  
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -15,7 +17,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -65,18 +73,19 @@ services:
       - "8000:8000"
     environment:
       PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
       MINIO_HOST: minio:9000
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@example.com
+      DJANGO_SUPERUSER_PASSWORD: admin123
     depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    command: python manage.py runserver 0.0.0.0:8000
 
 
 
@@ -96,6 +105,7 @@ services:
         condition: service_healthy
     command: >
       bash -c "
+        python manage.py makemigrations --noinput &&
         python manage.py migrate --noinput &&
         python manage.py fill_db &&
         python manage.py create_superuser
