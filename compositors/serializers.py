@@ -93,13 +93,16 @@ class ComposerSerializer(serializers.ModelSerializer):
 
 class ComposerAnalysisSerializer(serializers.ModelSerializer):
     composer = ComposerSerializer(read_only=True)
-    anonymous_interval_stats = AnonymousIntervalStatsField(source='*')
-
+    
     class Meta:
         model = ComposerAnalysis
         fields = [
             'composer',
-            'anonymous_interval_stats',
+            'anon_unisons_seconds_freq',
+            'anon_thirds_freq', 
+            'anon_fourths_fifths_freq',
+            'anon_sixths_sevenths_freq',
+            'anon_octaves_freq',
             'potential_coincidence'
         ]
 

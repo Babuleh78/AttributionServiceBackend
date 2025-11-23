@@ -17,6 +17,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network  
+
   adminer:
     image: adminer
     container_name: adminer
@@ -24,6 +27,9 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    networks:
+      - app-network  
+
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -34,6 +40,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - app-network  
 
   minio:
     image: minio/minio:latest 
@@ -52,6 +60,8 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    networks:
+      - app-network 
 
   createbucket:
     image: minio/mc
@@ -65,13 +75,18 @@ services:
       mc mb myminio/images &&
       mc anonymous set public myminio/images
       "
+    networks:
+      - app-network  
 
   django:
     build: .
     container_name: django
+    networks:
+      - app-network
     ports:
       - "8000:8000"
     environment:
+      GO_SERVICE_URL: http://go-service:8888
       PYTHONUNBUFFERED: 1
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
       MINIO_HOST: minio:9000
@@ -86,8 +101,6 @@ services:
       migration:
         condition: service_completed_successfully
     command: python manage.py runserver 0.0.0.0:8000
-
-
 
   migration:
     build: .
@@ -110,7 +123,26 @@ services:
         python manage.py fill_db &&
         python manage.py create_superuser
       "
+    networks:
+      - app-network  
+
+  go-service:
+    build: 
+      context: C:\Users\Babuleh\Desktop\5семестр\AttributionServiceFrontend\asyncServer
+      dockerfile: Dockerfile
+    container_name: go-service
+    ports:
+      - "8888:8888"
+    environment:
+      - DJANGO_API_URL=http://django:8000
+    restart: unless-stopped
+    networks:
+      - app-network
 
 volumes:
   pgdbdata:
   minio-data:
+
+networks:
+  app-network:
+    external: true  

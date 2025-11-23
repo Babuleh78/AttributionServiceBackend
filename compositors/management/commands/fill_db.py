@@ -189,7 +189,7 @@ def add_analysiss():
         print("Недостаточно данных для создания анализов")
         return
 
-    for _ in range(30):
+    for _ in range(5):
         status = random.randint(2, 5)
         owner = random.choice(users)
         add_analysis(status, composers, owner, moderators)
@@ -212,14 +212,19 @@ def add_analysis(status, composers, owner, moderators):
     analysis.save()
 
     selected_composers = random.sample(composers, min(3, len(composers)))
+    
     for composer in selected_composers:
+        # Проверяем, не существует ли уже такой связи
+        if ComposerAnalysis.objects.filter(analysis=analysis, composer=composer).exists():
+            print(f"Связь analysis={analysis.id}, composer={composer.id} уже существует, пропускаем")
+            continue
 
         orig_stats = [
-            {"IntervalGroup": "Унисоны и секунды", "Frequency": float(composer.unisons_seconds_freq), "StdDev": float(composer.unisons_seconds_stddev)},
-            {"IntervalGroup": "Терции", "Frequency": float(composer.thirds_freq), "StdDev": float(composer.thirds_stddev)},
-            {"IntervalGroup": "Кварты и квинты", "Frequency": float(composer.fourths_fifths_freq), "StdDev": float(composer.fourths_fifths_stddev)},
-            {"IntervalGroup": "Сексты и септимы", "Frequency": float(composer.sixths_sevenths_freq), "StdDev": float(composer.sixths_sevenths_stddev)},
-            {"IntervalGroup": "Октавы", "Frequency": float(composer.octaves_freq), "StdDev": float(composer.octaves_stddev)},
+            {"IntervalGroup": "Унисоны и секунды", "Frequency": float(composer.unisons_seconds_freq)},
+            {"IntervalGroup": "Терции", "Frequency": float(composer.thirds_freq)},
+            {"IntervalGroup": "Кварты и квинты", "Frequency": float(composer.fourths_fifths_freq)},
+            {"IntervalGroup": "Сексты и септимы", "Frequency": float(composer.sixths_sevenths_freq)},
+            {"IntervalGroup": "Октавы", "Frequency": float(composer.octaves_freq)},
         ]
 
         anon_stats = []
@@ -228,31 +233,32 @@ def add_analysis(status, composers, owner, moderators):
             freq = max(0.0, min(100.0, group["Frequency"] + noise)) 
             anon_stats.append({
                 "IntervalGroup": group["IntervalGroup"],
-                "Frequency": round(freq, 1),
-                "StdDev": group.get("StdDev", 0.0)  
+                "Frequency": round(freq, 1)
             })
 
         coincidence = 0.0
         if analysis.status == 3:
             coincidence = calc(orig_stats, anon_stats)
 
-        ca = ComposerAnalysis(
-            analysis=analysis,
-            composer=composer,
-            potential_coincidence=round(coincidence, 2),
-       
-            anon_unisons_seconds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Унисоны и секунды"),
-            anon_unisons_seconds_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Унисоны и секунды"),
-            anon_thirds_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Терции"),
-            anon_thirds_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Терции"),
-            anon_fourths_fifths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Кварты и квинты"),
-            anon_fourths_fifths_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Кварты и квинты"),
-            anon_sixths_sevenths_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Сексты и септимы"),
-            anon_sixths_sevenths_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Сексты и септимы"),
-            anon_octaves_freq=next(g["Frequency"] for g in anon_stats if g["IntervalGroup"] == "Октавы"),
-            anon_octaves_stddev=next(g.get("StdDev", 0.0) for g in anon_stats if g["IntervalGroup"] == "Октавы"),
-        )
-        ca.save()
+        # Безопасное извлечение данных из anon_stats
+        anon_stats_dict = {item["IntervalGroup"]: item for item in anon_stats}
+        
+        try:
+            ca = ComposerAnalysis(
+                analysis=analysis,
+                composer=composer,
+                potential_coincidence=round(coincidence, 2),
+                anon_unisons_seconds_freq=anon_stats_dict.get("Унисоны и секунды", {}).get("Frequency"),
+                anon_thirds_freq=anon_stats_dict.get("Терции", {}).get("Frequency"),
+                anon_fourths_fifths_freq=anon_stats_dict.get("Кварты и квинты", {}).get("Frequency"),
+                anon_sixths_sevenths_freq=anon_stats_dict.get("Сексты и септимы", {}).get("Frequency"),
+                anon_octaves_freq=anon_stats_dict.get("Октавы", {}).get("Frequency"),
+            )
+            ca.save()
+            
+            
+        except Exception as e:
+            print(f"Ошибка при создании связи analysis={analysis.id}, composer={composer.id}: {e}")
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):

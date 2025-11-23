@@ -23,12 +23,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-1t5@t0bddf)4r9$tz=7n1j^&=lwrbw9p@w1yorlviy^2kga8tk'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'ompositors.authentication.RedisSessionAuthentication',  # замените your_app на имя вашего приложения
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.67', 'localhost', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['192.168.1.67', 'localhost', '127.0.0.1', '0.0.0.0', 'django', 'go-service']
 
 CORS_ALLOW_ALL_ORIGINS = True 
 CORS_ALLOW_CREDENTIALS = True
+
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",

@@ -33,6 +33,11 @@ from django.http import JsonResponse
 from rest_framework import permissions
 from django.contrib.auth import get_user_model
 import ast
+import decimal
+import requests
+import threading
+from django.http import JsonResponse
+import os
 
 
 session_storage = redis.StrictRedis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
@@ -47,29 +52,13 @@ class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        ssid = request.COOKIES.get("session_id")
-        
-
-        try:
-            session_data_bytes = session_storage.get(ssid)
-            if not session_data_bytes:
-                return False
-            session_data = ast.literal_eval(session_data_bytes.decode('utf-8'))
-            user_id = session_data.get('user_id')
-            is_superuser = session_data.get('is_superuser', False)
-
-            if not user_id:
-                return False
-            try:
-                user = User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return False
-
-        except Exception:
+        user, error_response = get_user_from_session(request)
+        if error_response:
             return False
+
         if hasattr(obj, 'owner') and obj.owner == user:
             return request.method in permissions.SAFE_METHODS
-        if is_superuser:
+        if user.is_superuser:
             return True
         if hasattr(obj, 'moderator') and obj.moderator == user:
             return True
@@ -79,14 +68,61 @@ class IsOwnerOrModeratorOrAdmin(permissions.BasePermission):
 User = get_user_model()
 
 def get_user_from_session(request):
-
-    if not request.user.is_authenticated:
+    """
+    Новая версия с дебагом
+    """
+    print("=== GET_USER_FROM_SESSION DEBUG ===")
+    session_id = request.COOKIES.get('session_id')
+    print(f"Session ID: {session_id}")
+    print(f"All cookies: {dict(request.COOKIES)}")
+    
+    if not session_id:
+        print("❌ No session_id in cookies")
         return None, Response(
-            {"error": "User not authenticated"},
+            {"error": "Session ID not found", "debug": "No session_id cookie"},
             status=status.HTTP_401_UNAUTHORIZED
         )
-
-    return request.user, None
+    
+    try:
+        session_data_bytes = session_storage.get(session_id)
+        print(f"Raw session data from Redis: {session_data_bytes}")
+        
+        if not session_data_bytes:
+            print("❌ No data in Redis for this session_id")
+            return None, Response(
+                {"error": "Invalid or expired session", "debug": "No data in Redis"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
+        session_data = ast.literal_eval(session_data_bytes.decode('utf-8'))
+        user_id = session_data.get('user_id')
+        
+        print(f"Parsed session data: {session_data}")
+        print(f"Extracted user_id: {user_id}")
+        
+        if not user_id:
+            print("❌ user_id not found in session data")
+            return None, Response(
+                {"error": "User not found in session", "debug": "No user_id in session data"},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
+        user = User.objects.get(id=user_id)
+        print(f"✅ User authenticated: {user.email} (id: {user.id}, superuser: {user.is_superuser})")
+        return user, None
+        
+    except User.DoesNotExist:
+        print(f"❌ User with id {user_id} does not exist in database")
+        return None, Response(
+            {"error": "User does not exist", "debug": f"User id {user_id} not found"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+    except Exception as e:
+        print(f"❌ Session validation error: {e}")
+        return None, Response(
+            {"error": "Session validation failed", "debug": str(e)},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
     
 
 @permission_classes([AllowAny])
@@ -124,8 +160,11 @@ def login_view(request):
                 key='session_id',
                 value=random_key,
                 httponly=True,
-                samesite='None',  
-                path='/'      
+                samesite='None',
+                secure=True,  
+                domain='localhost', 
+                path='/',
+                max_age=86400
             )
                         
             return response
@@ -299,13 +338,18 @@ class AnalysisListView(APIView):
 
 
 class AnalysisDetailView(APIView):
-    permission_classes = [IsOwnerOrModeratorOrAdmin]
     
     def get(self, request, pk):
+        # Сначала получаем пользователя
+        user, error_response = get_user_from_session(request)
+        if error_response:
+            return error_response
+        
         analysis = get_object_or_404(Analysis, pk=pk)
         if analysis.status == 5:
             return Response({"error": "Analysis not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Проверяем права через permission класс
         permission = IsOwnerOrModeratorOrAdmin()
         if not permission.has_object_permission(request, self, analysis):
             return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
@@ -365,25 +409,67 @@ class AnalysisDetailView(APIView):
 
 class AnalysisFormulateView(APIView):
     permission_classes = [IsOwnerOrModeratorOrAdmin]
+    
     @swagger_auto_schema(request_body=AnalysisSerializer)
     def put(self, request, pk):
         analysis = get_object_or_404(Analysis, pk=pk)
 
         if analysis.status != 1:
             return Response({"error": "Only draft analysis can be formulated"}, status=status.HTTP_400_BAD_REQUEST)
-        if not ComposerAnalysis.objects.filter(analysis=analysis).exists():
+        
+        composer_analyses = ComposerAnalysis.objects.filter(analysis=analysis)
+        if not composer_analyses.exists():
             return Response({"error": "At least one composer must be added"}, status=status.HTTP_400_BAD_REQUEST)
 
+        print(composer_analyses)
+        # Асинхронно отправляем запросы в Go сервис для каждого composer_analysis
+        for composer_analysis in composer_analyses:
+            # Запускаем в отдельном потоке для асинхронности
+            thread = threading.Thread(
+                target=send_to_go_service,
+                args=(composer_analysis.id, composer_analysis.composer_id, analysis.id)
+            )
+            thread.daemon = True
+            thread.start()
+
+        # Немедленно обновляем статус анализа
         analysis.date_formation = timezone.now()
-        analysis.status = 2
+        analysis.status = 2  # Статус "Сформирован"
         analysis.save()
 
         return Response({
-            "message": "Analysis formulated successfully",
+            "message": "Analysis formulated successfully, coincidence calculations started",
             "status": analysis.get_status_display(),
-            "date_formation": analysis.date_formation
+            "date_formatiion": analysis.date_formation
         }, status=status.HTTP_200_OK)
 
+def send_to_go_service(composer_analysis_id, composer_id, analysis_id):
+    """
+    Отправляет запрос в Go сервис для расчета совпадения
+    """
+    try:
+        go_service_url = 'http://go-service:8888/api/calculate-coincidence'
+                         
+        data = {
+            "composer_analysis_id": composer_analysis_id,
+            "composer_id": composer_id,
+            "analysis_id": analysis_id
+        }
+        
+        # Отправляем запрос (таймаут 30 секунд)
+        response = requests.post(
+            go_service_url,
+            json=data,
+            timeout=30
+        )
+        
+        if response.status_code != 202:
+            print(f"Error sending to Go service: {response.status_code} - {response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        print(f"Request to Go service failed: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 class AnalysisCompleteOrRejectView(APIView):
     permission_classes = [IsAuthenticated, IsManager]
@@ -436,38 +522,44 @@ class CartIconView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
 class ComposerAnalysisUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(request_body=ComposerAnalysisSerializer)
     def put(self, request, analysis_id, composer_id):
         analysis = get_object_or_404(Analysis, pk=analysis_id)
-
-        if analysis.status != 1:
-            return Response(
-                {"error": "Can only modify draft"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         ca = get_object_or_404(ComposerAnalysis, analysis_id=analysis_id, composer_id=composer_id)
 
-        anonymous_stats = request.data.get('anonymous_interval_stats')
-        potential = request.data.get('potential_coincidence')
+        if analysis.status != 1:
+            if list(request.data.keys()) != ['potential_coincidence']:
+                return Response(
+                    {"error": "Can only modify draft for fields other than potential_coincidence"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        if anonymous_stats is not None:
-            ca.anonymous_interval_stats = anonymous_stats
-        if potential is not None:
-            ca.potential_coincidence = potential
-
-        ca.save()
-
-        return Response({
-            "message": "ComposerAnalysis updated successfully",
-            "anonymous_interval_stats": ca.anonymous_interval_stats,
-            "potential_coincidence": ca.potential_coincidence
-        }, status=status.HTTP_200_OK)
-
+        serializer = ComposerAnalysisSerializer(
+            ca, 
+            data=request.data, 
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "message": "ComposerAnalysis updated successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "error": "Validation failed",
+                "details": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request, analysis_id, composer_id):
+        """GET метод для получения данных ComposerAnalysis"""
+        ca = get_object_or_404(ComposerAnalysis, analysis_id=analysis_id, composer_id=composer_id)
+        serializer = ComposerAnalysisSerializer(ca)
+        return Response(serializer.data)
 
 class ComposerAnalysisDeleteView(APIView):
     permission_classes = [IsAuthenticated]
